@@ -1,0 +1,16 @@
+POST http://127.0.0.1:8000/logitlens HTTP/1.1
+content-type: application/json
+
+{
+    "model_name": "gpt2-small",
+    "input": "Tom Cruise is the star of the movie Mission:"
+}
+
+###
+
+GET http://127.0.0.1:8000/available_models HTTP/1.1
+
+
+###
+
+GET http://127.0.0.1:8000/loaded_models HTTP/1.1

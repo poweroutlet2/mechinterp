@@ -1,0 +1,14 @@
+[project]
+name = "logitlens"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "einops>=0.8.1",
+    "fastapi[standard]>=0.116.0",
+    "ipykernel>=6.29.5",
+    "pydantic>=2.11.7",
+    "torch>=2.7.1",
+    "transformer-lens>=2.16.1",
+]
