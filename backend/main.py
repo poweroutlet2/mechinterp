@@ -8,6 +8,7 @@ from transformer_lens.hook_points import HookPoint
 from torch import Tensor
 import torch as t
 import transformer_lens.utils as utils
+from fastapi.middleware.cors import CORSMiddleware
 
 
 loaded_models = {}
@@ -25,6 +26,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
@@ -38,7 +47,9 @@ def load_model(model_name: str):
 
     print(f"Loading model {model_name}...")
     device = utils.get_device()
-    model = HookedTransformer.from_pretrained(model_name, device=device)
+    model = HookedTransformer.from_pretrained(
+        model_name, device=device, default_prepend_bos=False
+    )
     loaded_models[model_name] = model
     print("Model successfully loaded!")
     return model
@@ -49,15 +60,21 @@ class RawResid(NamedTuple):
     resid: Tensor
 
 
-class LogitLensLayer(NamedTuple):
+class LogitLensLayer(BaseModel):
     hook_name: str
-    max_probs: list
-    max_prob_tokens: list
+    max_probs: list[float]
+    max_prob_tokens: list[str]
 
 
-class LogitLensRequest(BaseModel):  # noqa: F821
+class LogitLensRequest(BaseModel):
     model_name: str
     input: str
+
+
+class LogitLensResponse(BaseModel):
+    input_tokens: list[str]
+    most_likely_token: str
+    logit_lens: list[LogitLensLayer]
 
 
 @app.get("/available_models")
@@ -89,6 +106,8 @@ async def logitlens(request: LogitLensRequest):
         raw_resids.append(RawResid(hook_name=hook.name, resid=resid))
 
     print("Sending input to model...")
+    input_tokens = model.to_str_tokens(input)
+
     output: Tensor = model.run_with_hooks(
         input, fwd_hooks=[(post_resid_filter, post_resid_hook)]
     )
@@ -100,7 +119,6 @@ async def logitlens(request: LogitLensRequest):
     logit_lens: list[LogitLensLayer] = []
 
     # for each post transformer block residual state
-    #
     for result in raw_resids:
         logits = model.unembed(model.ln_final(result.resid))
         probs = t.softmax(logits, -1)
@@ -119,7 +137,8 @@ async def logitlens(request: LogitLensRequest):
             )
         )
 
-    result = {
+    result: LogitLensResponse = {
+        "input_tokens": input_tokens,
         "most_likely_token": most_likely_token,
         "logit_lens": logit_lens,
     }
