@@ -9,16 +9,17 @@ from torch import Tensor
 import torch as t
 import transformer_lens.utils as utils
 from fastapi.middleware.cors import CORSMiddleware
-
+import logging
 
 loaded_models = {}
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
     if not t.cuda.is_available():
-        print("CUDA is not available. Exiting application.", file=sys.stderr)
+        logger.warning("CUDA is not available! Using CPU instead.")
         sys.exit(1)
     yield
     # Shutdown logic (optional)
@@ -33,26 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-def load_model(model_name: str):
-    if model_name in loaded_models.keys():
-        print(f"Model {model_name} already loaded.")
-        return loaded_models[model_name]
-
-    print(f"Loading model {model_name}...")
-    device = utils.get_device()
-    model = HookedTransformer.from_pretrained(
-        model_name, device=device, default_prepend_bos=False
-    )
-    loaded_models[model_name] = model
-    print("Model successfully loaded!")
-    return model
 
 
 class RawResid(NamedTuple):
@@ -77,21 +58,53 @@ class LogitLensResponse(BaseModel):
     logit_lens: list[LogitLensLayer]
 
 
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
 @app.get("/available_models")
 async def list_models():
-    import transformer_lens.loading_from_pretrained as loading
-
-    return {"models": loading.OFFICIAL_MODEL_NAMES}
+    """Lists the models available for use."""
+    return {"models": ["gpt2-small", "gpt2-medium"]}
 
 
 @app.get("/loaded_models")
 async def list_loaded_models():
+    """Lists the models that have been loaded on the server."""
     return loaded_models
+
+
+def load_model(model_name: str):
+    """Loads the specified model.
+
+    Args:
+        model_name: The name of the model to load.
+
+    Returns:
+        The loaded model.
+    """
+
+    if model_name in loaded_models.keys():
+        logger.info(f"Model {model_name} already loaded.")
+        return loaded_models[model_name]
+
+    logger.info(f"Loading model {model_name}...")
+    device = utils.get_device()
+    model = HookedTransformer.from_pretrained(
+        model_name, device=device, default_prepend_bos=False
+    )
+    loaded_models[model_name] = model
+    logger.info(f"Model {model_name} successfully loaded!")
+    return model
 
 
 @app.post("/logitlens")
 async def logitlens(request: LogitLensRequest):
-    """ """
+    """Runs the input text through the selected model and returns the most probable token
+    after each model layer for each input token.
+    """
+
     input = request.input
     model_name = request.model_name
 
@@ -105,7 +118,7 @@ async def logitlens(request: LogitLensRequest):
     def post_resid_hook(resid, hook: HookPoint):
         raw_resids.append(RawResid(hook_name=hook.name, resid=resid))
 
-    print("Sending input to model...")
+    logger.info("Sending input to model...")
     input_tokens = model.to_str_tokens(input)
 
     output: Tensor = model.run_with_hooks(
