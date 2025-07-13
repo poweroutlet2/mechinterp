@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { LogitLensLayer } from "../components/ui/logitlens/LogitLens";
+import { LogitLensLayer } from "./LogitLens";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -49,7 +49,7 @@ export default function Heatmap({ data, input_tokens }: HeatmapProps) {
 				title: "Logit Lens Heatmap",
 				xaxis: {
 					title: {
-						text: "Input Tokens",
+						text: "Input Token",
 					},
 					tickmode: "array",
 					tickvals: xLabels,
@@ -76,7 +76,7 @@ export default function Heatmap({ data, input_tokens }: HeatmapProps) {
 					},
 				],
 			}}
-			className={`max-h-screen w-[${chartWidth}] max-w-screen`}
+			className={`max-h-screen w-[${chartWidth}] max-w-[90vw]`}
 		/>
 	);
 }

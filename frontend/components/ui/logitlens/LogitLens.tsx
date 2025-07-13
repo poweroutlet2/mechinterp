@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight } from "lucide-react";
 import Heatmap from "./Heatmap";
+import { Separator } from "../separator";
 
 export interface LogitLensLayer {
 	hook_name: string;
@@ -105,27 +106,30 @@ export default function LogitLens() {
 
 			{mutation.isError && <div className="text-red-500">An error occurred: {mutation.error.message}</div>}
 
-			{mutation.data && (
-				<div
-					className={`transition-opacity duration-200 justify-self-center self-center ${
-						mutation.isPending ? "opacity-50 pointer-events-none" : "opacity-100"
-					}`}
-				>
-					<div>
-						<h3 className="text-lg font-semibold px-8">
-							{currentText}
-							<span className="bg-blue-200 rounded-sm p-1">{mutation.data.most_likely_token}</span>
-							<Button className="ml-2" onClick={handleNextToken} disabled={mutation.isPending}>
-								{mutation.isPending ? "Loading..." : "Next Token"}
-								<ArrowRight />
-							</Button>
-						</h3>
-					</div>
-					<div className={`transition-opacity duration-200`}>
-						<Heatmap data={mutation.data.logit_lens} input_tokens={mutation.data.input_tokens} />
-					</div>
-				</div>
-			)}
+			<div
+				className={`transition-opacity duration-200 justify-self-center self-center ${
+					mutation.isPending ? "opacity-50 pointer-events-none" : "opacity-100"
+				}`}
+			>
+				<Separator className="mb-10" />
+				{mutation.data && (
+					<>
+						<div>
+							<h3 className="text-lg font-semibold px-8">
+								{currentText}
+								<span className="bg-blue-200 rounded-sm p-1">{mutation.data.most_likely_token}</span>
+								<Button className="ml-2" onClick={handleNextToken} disabled={mutation.isPending}>
+									{mutation.isPending ? "Loading..." : "Next Token"}
+									<ArrowRight />
+								</Button>
+							</h3>
+						</div>
+						<div className={`transition-opacity duration-200`}>
+							<Heatmap data={mutation.data.logit_lens} input_tokens={mutation.data.input_tokens} />
+						</div>
+					</>
+				)}
+			</div>
 		</div>
 	);
 }
