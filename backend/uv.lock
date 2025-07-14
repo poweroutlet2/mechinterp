@@ -760,6 +760,7 @@ dependencies = [
     { name = "ipykernel" },
     { name = "modal" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "torch" },
     { name = "transformer-lens" },
 ]
@@ -771,6 +772,7 @@ requires-dist = [
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "modal", specifier = ">=1.0.5" },
     { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "torch", specifier = ">=2.7.1" },
     { name = "transformer-lens", specifier = ">=2.16.1" },
 ]

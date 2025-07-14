@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-import sys
 from typing import NamedTuple
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -10,17 +9,26 @@ import torch as t
 import transformer_lens.utils as utils
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import config
+import httpx
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 loaded_models = {}
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
-    if not t.cuda.is_available():
+    logger.info(f"Using modal: {config.USE_MODAL}")
+
+    if not config.USE_MODAL and not t.cuda.is_available():
         logger.warning("CUDA is not available! Using CPU instead.")
-        sys.exit(1)
+
     yield
     # Shutdown logic (optional)
 
@@ -76,7 +84,7 @@ async def list_loaded_models():
 
 
 def load_model(model_name: str):
-    """Loads the specified model.
+    """Loads the specified model. On modal, this effectively just calls the model.from_pretrained method.
 
     Args:
         model_name: The name of the model to load.
@@ -100,7 +108,20 @@ def load_model(model_name: str):
 
 
 @app.post("/logitlens")
-async def logitlens(request: LogitLensRequest):
+async def logitlens_endpoint(request: LogitLensRequest):
+    if config.USE_MODAL:
+        url = f"https://{config.MODAL_WORKSPACE_NAME}--{config.MODAL_APP_NAME}-logitlens.modal.run"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url, json=request.model_dump(), timeout=httpx.Timeout(60.0)
+            )
+            response.raise_for_status()
+            return response.json()
+    else:
+        return logitlens(request)
+
+
+def logitlens(request: LogitLensRequest):
     """Runs the input text through the selected model and returns the most probable token
     after each model layer for each input token.
     """

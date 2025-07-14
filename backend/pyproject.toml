@@ -10,6 +10,7 @@ dependencies = [
     "ipykernel>=6.29.5",
     "modal>=1.0.5",
     "pydantic>=2.11.7",
+    "python-dotenv>=1.1.1",
     "torch>=2.7.1",
     "transformer-lens>=2.16.1",
 ]
