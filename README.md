@@ -37,7 +37,7 @@ To start the api and utilize Modal for GPU processing
     cd backend
     cp .example.env .env
     ```
-3. Create a (Modal)[https://modal.com] account, create a new access token, and set the `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `MODAL_WORKSPACE_NAME` environment 
+3. Create a [Modal](https://modal.com) account, create a new access token, and set the `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `MODAL_WORKSPACE_NAME` environment 
 variables in the `.env` file. You can find your workspace name in the Modal dashboard.
 
 4. Set the `USE_MODAL` environment variable to `True` in the `.env` file. 

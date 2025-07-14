@@ -20,6 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+model_expirations = {}
 loaded_models = {}
 
 
@@ -85,7 +86,7 @@ async def list_loaded_models():
     Returns:
         A dictionary with the model name as the key and the timestamp of when the model was loaded as the value.
     """
-    return loaded_models
+    return model_expirations
 
 
 def load_model(model_name: str):
@@ -107,7 +108,10 @@ def load_model(model_name: str):
     model = HookedTransformer.from_pretrained(
         model_name, device=device, default_prepend_bos=False
     )
-    loaded_models[model_name] = datetime.now().isoformat()
+
+    loaded_models[model_name] = model
+    model_expirations[model_name] = datetime.now().isoformat()
+
     logger.info(f"Model {model_name} successfully loaded!")
     return model
 
@@ -121,14 +125,14 @@ async def logitlens_endpoint(request: LogitLensRequest):
                 url, json=request.model_dump(), timeout=httpx.Timeout(60.0)
             )
             response.raise_for_status()
-            loaded_models[request.model_name] = datetime.now().isoformat()
+            model_expirations[request.model_name] = datetime.now().isoformat()
             logger.info(
                 f"Loaded model {request.model_name} at {datetime.now().isoformat()}"
             )
             return response.json()
     else:
         response = logitlens(request)
-        loaded_models[request.model_name] = datetime.now().isoformat()
+        model_expirations[request.model_name] = datetime.now().isoformat()
         logger.info(
             f"Loaded model {request.model_name} at {datetime.now().isoformat()}"
         )

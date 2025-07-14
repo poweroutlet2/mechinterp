@@ -6,4 +6,4 @@ load_dotenv()
 MODAL_APP_NAME = os.environ.get("MODAL_APP_NAME", "APP_NAME_NOT_SET")
 MODAL_WORKSPACE_NAME = os.environ.get("MODAL_WORKSPACE_NAME", "WORKSPACE_NAME_NOT_SET")
 
-USE_MODAL = bool(os.environ.get("USE_MODAL", False))
+USE_MODAL = os.environ.get("USE_MODAL", "False") == "True"

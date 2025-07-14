@@ -75,7 +75,7 @@ function getModelStatus(loadedTimestamp: string | undefined, isLoading: boolean)
 }
 
 export default function LogitLens() {
-	const [input, setInput] = useState("The capital of France is");
+	const [input, setInput] = useState("Tom Cruise stars in the movie Mission");
 	const [modelName, setModelName] = useState("gpt2-small");
 	const [currentText, setCurrentText] = useState("");
 
