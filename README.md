@@ -1,10 +1,8 @@
-This is a simple app that lets you examine the inner workings of a transformer model using the [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) library. The UI allows you
-to run input text through a toy model and apply a logit lens to the model's output and visualize the
-logit lens of the model's output after each layer.
+This is a simple webapp that lets you examine the inner workings of transformer models using the [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) library. The UI allows you
+to run input text through a model and apply a logit lens to the model's output after each layer to view the most likely next token at each layer.
 
 # Getting Started
-This app uses FastAPI for the backend API and NextJS for the frontend UI. Since they are deployed on completely different
-infrastructure providers, the directories are treated as individual projects during development. To start the
+This app uses FastAPI to serve and analyze models and NextJS to display the user interface. To start the
 development servers:
 
 ```bash
@@ -27,19 +25,24 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) to see the API doc
 Open [http://localhost:3000](http://localhost:3000) to see the UI.
 
 # Using Modal for GPU processing
-Modal is a platorm that allows you to easily use GPUs on the cloud. It also has a pretty generous free tier. This can be useful
-for running some of the models or if you want to deploy this yourself.
+By default, the app will use the local GPU if available and fallback to the CPU. If you want to use a cloud GPU, you can set up Modal.
+Modal is a platorm that allows you to easily use GPUs on the cloud. It has a generous free tier (for small projects like this). This can be useful
+if you do not have a local GPU or if you want to deploy the app yourself.
 
-To run the api and utilize modal for GPU processing
+Note: There is currently no rate limitting or authentication present in the API. Please consider this if you decide to upgrade from the Modal free tier.
+
+To start the api and utilize Modal for GPU processing
 1. Copy `.example.env` to `.env`:
     ```bash 
     cd backend
     cp .example.env .env
     ```
-3. Create a modal account and set the `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` environment variables.
+3. Create a (Modal)[https://modal.com] account, create a new access token, and set the `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `MODAL_WORKSPACE_NAME` environment 
+variables in the `.env` file. You can find your workspace name in the Modal dashboard.
 
-4. Set the `USE_MODAL` and `MODAL_WORKSPACE_NAME` environment variables to `True` in the `.env` file. You can find your workspace name in the modal dashboard.
-5. Deploy the modal app:
+4. Set the `USE_MODAL` environment variable to `True` in the `.env` file. 
+
+5. Deploy the Modal app:
     ```bash
     uv run python3 -m modal deploy modal_app.py   
     ```

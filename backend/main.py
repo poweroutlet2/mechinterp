@@ -121,9 +121,18 @@ async def logitlens_endpoint(request: LogitLensRequest):
                 url, json=request.model_dump(), timeout=httpx.Timeout(60.0)
             )
             response.raise_for_status()
+            loaded_models[request.model_name] = datetime.now().isoformat()
+            logger.info(
+                f"Loaded model {request.model_name} at {datetime.now().isoformat()}"
+            )
             return response.json()
     else:
-        return logitlens(request)
+        response = logitlens(request)
+        loaded_models[request.model_name] = datetime.now().isoformat()
+        logger.info(
+            f"Loaded model {request.model_name} at {datetime.now().isoformat()}"
+        )
+        return response
 
 
 def logitlens(request: LogitLensRequest):
