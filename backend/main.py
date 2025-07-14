@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import NamedTuple
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -79,7 +80,11 @@ async def list_models():
 
 @app.get("/loaded_models")
 async def list_loaded_models():
-    """Lists the models that have been loaded on the server."""
+    """Lists the models that have been loaded on the server.
+
+    Returns:
+        A dictionary with the model name as the key and the timestamp of when the model was loaded as the value.
+    """
     return loaded_models
 
 
@@ -102,7 +107,7 @@ def load_model(model_name: str):
     model = HookedTransformer.from_pretrained(
         model_name, device=device, default_prepend_bos=False
     )
-    loaded_models[model_name] = model
+    loaded_models[model_name] = datetime.now().isoformat()
     logger.info(f"Model {model_name} successfully loaded!")
     return model
 
