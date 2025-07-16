@@ -1,5 +1,5 @@
 import modal
-import config
+import src.config as config
 
 app_name = config.MODAL_APP_NAME
 app = modal.App(app_name)
@@ -11,8 +11,8 @@ image = (
     .pip_install("fastapi[standard]")
     .pip_install("torch")
     .pip_install("transformer_lens")
-    .add_local_file("main.py", "/root/main.py")
-    .add_local_file("config.py", "/root/config.py")
+    .env({"HF_TOKEN": config.HF_TOKEN})
+    .add_local_dir(".", "/root", ignore=["__pycache__", ".git", ".env", ".venv"])
 )
 
 
@@ -23,7 +23,7 @@ image = (
 )
 def modal_logitlens(request: dict):
     # Import inside the function to ensure main.py is available
-    from main import LogitLensRequest, logitlens
+    from src.main import LogitLensRequest, logitlens
 
     logit_request = LogitLensRequest(**request)
     return logitlens(logit_request)

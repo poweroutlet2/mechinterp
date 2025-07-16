@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,6 +60,16 @@ async function fetchLoadedModels(): Promise<LoadedModelsResponse> {
 	return response.json();
 }
 
+async function fetchAvailableModels(): Promise<string[]> {
+	const response = await fetch("http://localhost:8000/available_models");
+
+	if (!response.ok) {
+		throw new Error("Failed to fetch available models");
+	}
+
+	return response.json();
+}
+
 type ModelStatus = "online" | "sleeping" | "loading";
 
 function getModelStatus(loadedTimestamp: string | undefined, isLoading: boolean): ModelStatus {
@@ -90,7 +100,16 @@ export default function LogitLens() {
 		staleTime: 0,
 	});
 
-	const availableModels = ["gpt2-small", "gpt2-medium"];
+	const { data: availableModels, refetch: refetchAvailableModels } = useQuery({
+		initialData: ["gpt2-small"],
+		queryKey: ["availableModels"],
+		queryFn: fetchAvailableModels,
+		enabled: false,
+	});
+
+	useEffect(() => {
+		refetchAvailableModels();
+	}, [refetchAvailableModels]);
 
 	const getModelStatusForModel = (model: string): ModelStatus => {
 		return getModelStatus(loadedModels?.[model], isLoadingModels);
@@ -156,7 +175,7 @@ export default function LogitLens() {
 						loading
 					</Badge>
 				</TooltipTrigger>
-				<TooltipContent>Model is currently being loaded. This can take up to a minute!</TooltipContent>
+				<TooltipContent>Model is currently being loaded. This can take a few minutes!</TooltipContent>
 			</Tooltip>
 		);
 	};
@@ -224,7 +243,7 @@ export default function LogitLens() {
 								<SelectValue placeholder="Select a model" />
 							</SelectTrigger>
 							<SelectContent>
-								{availableModels.map((model) => {
+								{availableModels?.map((model) => {
 									return (
 										<SelectItem key={model} value={model}>
 											<div className="flex items-center gap-2">{model}</div>

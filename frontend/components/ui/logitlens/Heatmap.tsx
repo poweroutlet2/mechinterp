@@ -14,15 +14,12 @@ export default function Heatmap({ data, input_tokens }: HeatmapProps) {
 	if (!data || data.length === 0) {
 		return null;
 	}
-	console.log(input_tokens);
 	const yLabels = data.map((layer) => layer.hook_name.replace("blocks.", "L").replace(".hook_resid_post", ""));
 	const xLabels = input_tokens.map((_, index) => index);
 	const zValues = data.map((layer) => layer.max_probs);
 	const textValues = data.map((layer) => layer.max_prob_tokens);
 
-	const chartHeight = `${data.length * 0}`;
 	const chartWidth = `${input_tokens.length * 100}`;
-	console.log(chartHeight);
 
 	return (
 		<Plot

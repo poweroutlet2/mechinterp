@@ -10,7 +10,7 @@ development servers:
 cd backend
 
 uv sync --all-groups
-uv run fastapi dev main.py     
+uv run fastapi dev src/main.py     
 ```
 
 ```bash
@@ -44,7 +44,7 @@ variables in the `.env` file. You can find your workspace name in the Modal dash
 
 5. Deploy the Modal app:
     ```bash
-    uv run python3 -m modal deploy modal_app.py   
+    uv run python3 -m modal deploy src/modal_app.py   
     ```
     This will create modal endpoints that the FastAPI server will call.
 5. Run the dev server. 

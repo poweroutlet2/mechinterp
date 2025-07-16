@@ -10,7 +10,7 @@ import torch as t
 import transformer_lens.utils as utils
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import config
+import src.config as config
 import httpx
 
 
@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 
 model_expirations = {}
 loaded_models = {}
+available_models = [
+    "gpt2-small",
+    "gpt2-medium",
+    "qwen3-0.6b",
+    "gemma-2b",
+]
 
 
 @asynccontextmanager
@@ -76,7 +82,7 @@ async def root():
 @app.get("/available_models")
 async def list_models():
     """Lists the models available for use."""
-    return {"models": ["gpt2-small", "gpt2-medium"]}
+    return available_models
 
 
 @app.get("/loaded_models")
