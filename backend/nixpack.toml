@@ -1,0 +1,5 @@
+[providers.python]
+installer = "uv"
+
+[start]
+cmd = "fastapi run src/main.py"

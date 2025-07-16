@@ -37,16 +37,18 @@ To start the api and utilize Modal for GPU processing
     cd backend
     cp .example.env .env
     ```
-3. Create a [Modal](https://modal.com) account, create a new access token, and set the `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `MODAL_WORKSPACE_NAME` environment 
+
+2. Create a [Modal](https://modal.com) account, create a new access token, and set the `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `MODAL_WORKSPACE_NAME` environment 
 variables in the `.env` file. You can find your workspace name in the Modal dashboard.
 
-4. Set the `USE_MODAL` environment variable to `True` in the `.env` file. 
+3. Set the `USE_MODAL` environment variable to `True` in the `.env` file. 
 
-5. Deploy the Modal app:
-    ```bash
+4. Deploy the Modal app:
+```bash
     uv run python3 -m modal deploy src/modal_app.py   
-    ```
+```
     This will create modal endpoints that the FastAPI server will call.
+
 5. Run the dev server. 
 
 
