@@ -20,4 +20,4 @@ RUN uv sync
 
 COPY ./src ./src
 
-CMD ["uv", "run", "fastapi", "run", "src/main.py"]
+CMD ["uv", "run", "fastapi", "run", "src/main.py", "--host", "0.0.0.0", "--port", "3000"]
