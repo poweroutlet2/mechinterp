@@ -13,6 +13,8 @@ import Heatmap from "./Heatmap";
 import { Separator } from "../separator";
 import { Textarea } from "../textarea";
 
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
+
 export interface LogitLensLayer {
 	hook_name: string;
 	max_probs: number[];
@@ -35,7 +37,7 @@ interface LoadedModelsResponse {
 }
 
 async function postLogitLens(request: LogitLensRequest): Promise<LogitLensResponse> {
-	const response = await fetch("http://localhost:8000/logitlens", {
+	const response = await fetch(`${API_BASE_URL}/logitlens`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -51,7 +53,7 @@ async function postLogitLens(request: LogitLensRequest): Promise<LogitLensRespon
 }
 
 async function fetchLoadedModels(): Promise<LoadedModelsResponse> {
-	const response = await fetch("http://localhost:8000/loaded_models");
+	const response = await fetch(`${API_BASE_URL}/loaded_models`);
 
 	if (!response.ok) {
 		throw new Error("Failed to fetch loaded models");
@@ -61,7 +63,7 @@ async function fetchLoadedModels(): Promise<LoadedModelsResponse> {
 }
 
 async function fetchAvailableModels(): Promise<string[]> {
-	const response = await fetch("http://localhost:8000/available_models");
+	const response = await fetch(`${API_BASE_URL}/available_models`);
 
 	if (!response.ok) {
 		throw new Error("Failed to fetch available models");
