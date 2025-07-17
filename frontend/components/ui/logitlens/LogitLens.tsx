@@ -209,21 +209,16 @@ export default function LogitLens() {
 						</AccordionTrigger>
 						<AccordionContent className="text-base leading-relaxed">
 							<p className="mb-4">
-								Logit Lens is a technique for interpreting transformer models by examining the
-								predictions made at each layer of the network. Instead of only looking at the final
-								output, it allows us to see what the model &quot;thinks&quot; the next token should be
-								at every intermediate layer.
+								Logit Lens is a basic technique for interpreting transformer models that examines what
+								the model&apos;s output would be if predictions made at each layer of the network.
+								Instead of only looking at the final output, it allows us to see what the model
+								&quot;thinks&quot; the next token should be at every intermediate layer.
 							</p>
 							<p className="mb-4">
 								This visualization shows how the model&apos;s predictions evolve as information flows
 								through the layers. Each row represents a layer in the transformer, and each column
 								represents a token position in the input sequence. The colors and text show the most
 								likely next token predicted at each layer and position.
-							</p>
-							<p className="mb-4">
-								By analyzing these intermediate predictions, we can gain insights into how the model
-								processes information and builds up its understanding of the input sequence layer by
-								layer.
 							</p>
 							<p>
 								Begin by selecting a model and entering some text. The model will predict the next
