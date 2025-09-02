@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+This is an LLM mechanistic interpretabilitywebapp that lets you examine the inner workings of transformer models using the TransformerLens library.
+
+The project is split into a backend and a frontend. The backend is a FastAPI app that serves the API and handles the model loading and processing. The frontend is a NextJS app that serves the webapp and handles the user interface.
+
+The backend can optionally use Modal for GPU processing. Modal is a serverless GPU provider that allows you to run your code on GPUs in the cloud.

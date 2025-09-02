@@ -10,7 +10,7 @@ development servers:
 cd backend
 
 uv sync --all-groups
-uv run fastapi dev src/main.py     
+uv run python -m fastapi dev src/main.py     
 ```
 
 ```bash

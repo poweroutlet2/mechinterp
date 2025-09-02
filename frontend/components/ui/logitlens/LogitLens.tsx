@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,50 +74,127 @@ async function fetchAvailableModels(): Promise<string[]> {
 
 type ModelStatus = "online" | "sleeping" | "loading";
 
-function getModelStatus(loadedTimestamp: string | undefined, isLoading: boolean): ModelStatus {
-	if (isLoading) return "loading";
-	if (!loadedTimestamp) return "sleeping";
+function useModelStatus(
+	modelName: string,
+	loadedModels: LoadedModelsResponse | undefined,
+	isLoadingModels: boolean
+): ModelStatus {
+	const calculateStatus = useCallback((): ModelStatus => {
+		if (isLoadingModels) return "loading";
+		const loadedTimestamp = loadedModels?.[modelName];
+		if (!loadedTimestamp) return "sleeping";
 
-	const timestamp = new Date(loadedTimestamp);
-	const now = new Date();
-	const diffInMinutes = (now.getTime() - timestamp.getTime()) / (1000 * 60);
+		const timestamp = new Date(loadedTimestamp);
+		const now = new Date();
+		const diffInSeconds = (now.getTime() - timestamp.getTime()) / 1000;
 
-	// Models are automatically unloaded after ~1.2 minutes
-	return diffInMinutes > 1.2 ? "sleeping" : "online";
+		// Models are automatically unloaded after ~80 seconds
+		return diffInSeconds > 80 ? "sleeping" : "online";
+	}, [isLoadingModels, loadedModels, modelName]);
+
+	const [status, setStatus] = useState<ModelStatus>(calculateStatus);
+
+	useEffect(() => {
+		setStatus(calculateStatus());
+
+		const interval = setInterval(() => {
+			setStatus(calculateStatus());
+		}, 5000);
+
+		return () => clearInterval(interval);
+	}, [calculateStatus]);
+
+	return status;
 }
 
+const statusConfig: Record<
+	ModelStatus,
+	{
+		badgeContent: React.ReactNode;
+		tooltip: string;
+		variant?: "secondary";
+		className?: string;
+	}
+> = {
+	online: {
+		badgeContent: (
+			<>
+				<Circle className="absolute animate-ping w-2 h-2 top-1 left-2 opacity-50 rounded-full fill-current text-green-500" />
+				<Circle className="w-2 h-2 fill-current text-green-500" />
+				online
+			</>
+		),
+		tooltip: "Model is loaded and ready to use. Will be unloaded after ~1 minutes of inactivity.",
+		className: "relative",
+	},
+	sleeping: {
+		badgeContent: (
+			<>
+				<Circle className="absolute animate-ping w-2 h-2 top-1 left-2 opacity-50 rounded-full fill-current text-red-500" />
+				<Circle className="w-2 h-2 fill-current text-red-500" />
+				sleeping
+			</>
+		),
+		tooltip: "Model is not loaded - will be loaded on first use and unloaded after ~1 minutes of inactivity.",
+		className: "relative",
+	},
+	loading: {
+		badgeContent: (
+			<>
+				<Loader2 className="w-2 h-2 animate-spin text-blue-500" />
+				loading
+			</>
+		),
+		tooltip: "Model is currently being loaded. This can take a few minutes!",
+		variant: "secondary",
+	},
+};
+
+const ModelStatusBadge = ({ status, isMutating }: { status: ModelStatus; isMutating: boolean }) => {
+	const displayStatus = isMutating || status === "loading" ? "loading" : status;
+	const config = statusConfig[displayStatus];
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Badge variant={config.variant} className={`flex items-center gap-1 ${config.className || ""}`}>
+					{config.badgeContent}
+				</Badge>
+			</TooltipTrigger>
+			<TooltipContent>{config.tooltip}</TooltipContent>
+		</Tooltip>
+	);
+};
 export default function LogitLens() {
 	const [input, setInput] = useState("Tom Cruise stars in the movie Mission");
 	const [modelName, setModelName] = useState("gpt2-small");
 	const [currentText, setCurrentText] = useState("");
 
-	const mutation = useMutation({
-		mutationFn: postLogitLens,
-	});
-
-	const { data: loadedModels, isLoading: isLoadingModels } = useQuery({
+	const {
+		data: loadedModels,
+		isLoading: isLoadingModels,
+		refetch: refetchLoadedModels,
+	} = useQuery({
 		queryKey: ["loadedModels"],
 		queryFn: fetchLoadedModels,
 		refetchInterval: 5000,
 		staleTime: 0,
 	});
 
-	const { data: availableModels, refetch: refetchAvailableModels } = useQuery({
+	const mutation = useMutation({
+		mutationFn: postLogitLens,
+		onSuccess: () => {
+			refetchLoadedModels();
+		},
+	});
+
+	const { data: availableModels } = useQuery({
 		initialData: ["gpt2-small"],
 		queryKey: ["availableModels"],
 		queryFn: fetchAvailableModels,
-		enabled: false,
 	});
 
-	useEffect(() => {
-		refetchAvailableModels();
-	}, [refetchAvailableModels]);
-
-	const getModelStatusForModel = (model: string): ModelStatus => {
-		return getModelStatus(loadedModels?.[model], isLoadingModels);
-	};
-
-	const selectedModelStatus = getModelStatusForModel(modelName);
+	const selectedModelStatus = useModelStatus(modelName, loadedModels, isLoadingModels);
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -131,55 +208,6 @@ export default function LogitLens() {
 			setCurrentText(newText);
 			mutation.mutate({ model_name: modelName, input: newText });
 		}
-	};
-
-	const renderStatusBadge = (status: ModelStatus) => {
-		if (status === "online" && !mutation.isPending) {
-			return (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Badge className="relative flex items-center gap-1">
-							<Circle className="absolute animate-ping w-2 h-2 top-1 left-2 opacity-50 rounded-full fill-current text-green-500" />
-							<Circle className="w-2 h-2 fill-current text-green-500" />
-							online
-						</Badge>
-					</TooltipTrigger>
-					<TooltipContent>
-						Model is loaded and ready to use. Will be unloaded after ~1 minutes of inactivity.
-					</TooltipContent>
-				</Tooltip>
-			);
-		}
-
-		if (status === "sleeping" && !mutation.isPending) {
-			return (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Badge className="relative flex items-center gap-1">
-							<Circle className="absolute animate-ping w-2 h-2 top-1 left-2 opacity-50 rounded-full fill-current text-red-500" />
-							<Circle className="w-2 h-2 fill-current text-red-500" />
-							sleeping
-						</Badge>
-					</TooltipTrigger>
-					<TooltipContent>
-						Model is not loaded - will be loaded on first use and unloaded after ~1 minutes of inactivity.
-					</TooltipContent>
-				</Tooltip>
-			);
-		}
-
-		// loading status
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Badge variant="secondary" className="flex items-center gap-1">
-						<Loader2 className="w-2 h-2 animate-spin text-blue-500" />
-						loading
-					</Badge>
-				</TooltipTrigger>
-				<TooltipContent>Model is currently being loaded. This can take a few minutes!</TooltipContent>
-			</Tooltip>
-		);
 	};
 
 	return (
@@ -249,7 +277,7 @@ export default function LogitLens() {
 								})}
 							</SelectContent>
 						</Select>
-						{renderStatusBadge(selectedModelStatus)}
+						<ModelStatusBadge status={selectedModelStatus} isMutating={mutation.isPending} />
 					</div>
 				</div>
 				<div>
