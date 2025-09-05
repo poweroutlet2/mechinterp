@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import NamedTuple
 from fastapi import FastAPI
-from pydantic import BaseModel
 from transformer_lens import HookedTransformer
 from transformer_lens.hook_points import HookPoint
 from torch import Tensor
@@ -12,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 import src.config as config
 import httpx
+from src.schemas import LogitLensLayer, LogitLensRequest, LogitLensResponse
 
 
 logging.basicConfig(
@@ -50,28 +50,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class RawResid(NamedTuple):
-    hook_name: str
-    resid: Tensor
-
-
-class LogitLensLayer(BaseModel):
-    hook_name: str
-    max_probs: list[float]
-    max_prob_tokens: list[str]
-
-
-class LogitLensRequest(BaseModel):
-    model_name: str
-    input: str
-
-
-class LogitLensResponse(BaseModel):
-    input_tokens: list[str]
-    most_likely_token: str
-    logit_lens: list[LogitLensLayer]
 
 
 @app.get("/")
@@ -143,6 +121,11 @@ async def logitlens_endpoint(request: LogitLensRequest):
             f"Loaded model {request.model_name} at {datetime.now().isoformat()}"
         )
         return response
+
+
+class RawResid(NamedTuple):
+    hook_name: str
+    resid: Tensor
 
 
 def logitlens(request: LogitLensRequest):
