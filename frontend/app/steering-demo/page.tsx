@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, Loader2, Plus, X } from "lucide-react";
+import { ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
 import ModelSelector from "../../components/model-selector";
 import { useState } from "react";
+import Link from "next/link";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -126,6 +127,10 @@ export default function SteeringDemo() {
 
 	return (
 		<div className="w-full flex justify-center min-h-screen p-8">
+			<Link href="/" className="text-gray-600 hover:text-gray-900 absolute top-4 left-4">
+				<Home className="size-6" />
+			</Link>
+
 			<div className="flex flex-col gap-8 w-full max-w-4xl">
 				<div className="flex flex-col gap-4">
 					<a

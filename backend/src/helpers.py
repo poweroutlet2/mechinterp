@@ -1,9 +1,28 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from transformer_lens import HookedTransformer, utils
 from src.state import loaded_models, model_expirations
 
 logger = logging.getLogger(__name__)
+
+
+def update_model_expiration(model_name: str) -> str:
+    """Update the model's expiration timestamp to the current UTC time.
+
+    Args:
+        model_name: The name of the model to update.
+
+    Returns:
+        The RFC 3339 UTC timestamp string with millisecond precision and 'Z' suffix.
+    """
+
+    timestamp = (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+    model_expirations[model_name] = timestamp
+    return timestamp
 
 
 def load_model(model_name: str):
@@ -27,7 +46,7 @@ def load_model(model_name: str):
     )
 
     loaded_models[model_name] = model
-    model_expirations[model_name] = datetime.now().isoformat()
+    update_model_expiration(model_name)
 
     logger.info(f"Model {model_name} successfully loaded!")
     return model
