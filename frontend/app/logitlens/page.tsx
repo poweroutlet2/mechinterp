@@ -5,11 +5,12 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Home } from "lucide-react";
 import Heatmap from "./components/Heatmap";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import ModelSelector from "../../components/model-selector";
+import Link from "next/link";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -75,7 +76,11 @@ export default function LogitLens() {
 	};
 
 	return (
-		<div className="w-full flex justify-center min-h-screen p-8">
+		<div className="w-full flex relative justify-center min-h-screen p-8">
+			<Link href="/" className="text-gray-600 hover:text-gray-900 absolute top-4 left-4">
+				<Home className="size-6" />
+			</Link>
+
 			<div className="flex flex-col gap-8 w-full max-w-4xl">
 				<div className="flex flex-col gap4">
 					<a

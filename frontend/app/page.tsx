@@ -1,17 +1,26 @@
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
 	return (
 		<div className="w-full flex justify-center min-h-screen p-8">
 			<div className="flex flex-col gap-4">
-				<span>Hi! I&apos;m Harsh! These are some interactive mechinterp demos.</span>
-				<Link href="https://github.com/poweroutlet2" className="hover:underline">
-					Source Code
-				</Link>
-				<Link href="/logitlens" className="hover:underline">
+				<span>Hi! I&apos;m Harsh! Here are some interactive mechinterp demos.</span>
+				<Link href="/logitlens" className="hover:underline flex flex-row items-center gap-2 w-fit">
 					LogitLens
+					<ArrowRight className="size-4" />
 				</Link>
-				<Link href="/steering-demo"> Steering Demo </Link>
+				<Link href="/steering-demo" className="hover:underline flex flex-row items-center gap-2 w-fit">
+					Steering Demo
+					<ArrowRight className="size-4" />
+				</Link>
+				<Link
+					href="https://github.com/poweroutlet2"
+					className="hover:underline flex flex-row items-center gap-2 w-fit"
+				>
+					My Github
+					<ArrowRight className="size-4" />
+				</Link>
 			</div>
 		</div>
 	);

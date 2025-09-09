@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { LogitLensLayer } from "./LogitLens";
+import { LogitLensLayer } from "../page";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
