@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Logit Lens",
-	description: "Logit Lens",
+	title: "hpatel.dev",
+	description: "hpatel.dev",
 };
 
 export default function RootLayout({
