@@ -61,7 +61,7 @@ function useModelStatus(
 
 		const interval = setInterval(() => {
 			setStatus(calculateStatus());
-		}, 5000);
+		}, 10000);
 
 		return () => clearInterval(interval);
 	}, [calculateStatus]);

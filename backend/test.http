@@ -27,3 +27,11 @@ content-type: application/json
 }
 
 ###
+POST http://127.0.0.1:8000/steering_vectors HTTP/1.1
+content-type: application/json
+
+{
+    "model_name": "gpt2-small",
+    "positive_prompts": ["Tom Cruise is the star of the movie Mission:"],
+    "negative_prompts": ["Tom Cruise is not the star of the movie Mission:"]
+}
