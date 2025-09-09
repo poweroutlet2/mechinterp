@@ -1,29 +1,74 @@
 import modal
 import src.config as config
 
-app_name = config.MODAL_APP_NAME
-app = modal.App(app_name)
 
 # you can add apt and pip installs here, along with any other image setup
 image = (
     modal.Image.debian_slim()
     .apt_install("pkg-config", "cmake", "build-essential")
-    .pip_install("fastapi[standard]")
-    .pip_install("torch")
-    .pip_install("transformer_lens")
+    .uv_pip_install("fastapi[standard]")
+    .uv_pip_install("torch")
+    .uv_pip_install("transformer_lens")
     .env({"HF_TOKEN": config.HF_TOKEN})
     .add_local_dir(".", "/root", ignore=["__pycache__", ".git", ".env", ".venv"])
 )
+app_name = config.MODAL_APP_NAME
+app = modal.App(app_name, image=image)
 
 
-@app.function(gpu="T4", image=image)
-@modal.fastapi_endpoint(
-    method="POST",
-    label=f"{app_name}-logitlens",  # app_name-endpoint_name
+with image.imports():  # import in the global scope so imports can be snapshot
+    from transformer_lens import HookedTransformer, utils
+    from src.services.logitlens import logitlens
+    from src.schemas import LogitLensRequest
+
+snapshot_key = "v1"  # change this to invalidate the snapshot cache
+
+
+@app.cls(
+    gpu="T4",
+    enable_memory_snapshot=True,
+    experimental_options={"enable_gpu_snapshot": True},
 )
-def modal_logitlens(request: dict):
-    # Import inside the function to ensure main.py is available
-    from src.main import LogitLensRequest, logitlens
+class GPT2ModelRunner:
+    @modal.enter(snap=True)
+    def load(self):
+        # during enter phase of container lifecycle,
+        # load the model onto the GPU so it can be snapshot
+        model_name = "gpt2-small"
+        device = utils.get_device()
+        self.model = HookedTransformer.from_pretrained(
+            model_name, device=device, default_prepend_bos=False
+        )
 
-    logit_request = LogitLensRequest(**request)
-    return logitlens(logit_request)
+    @modal.method()
+    def generate(self, prompt: str) -> str:
+        return self.model.generate(prompt, max_new_tokens=100)
+
+    @modal.method()
+    def logitlens(self, request: LogitLensRequest) -> str:
+        return logitlens(request, self.model)
+
+
+@app.cls(
+    gpu="T4",
+    enable_memory_snapshot=True,
+    experimental_options={"enable_gpu_snapshot": True},
+)
+class Gemma2BModelRunner:
+    @modal.enter(snap=True)
+    def load(self):
+        # during enter phase of container lifecycle,
+        # load the model onto the GPU so it can be snapshot
+        model_name = "gemma-2b"
+        device = utils.get_device()
+        self.model = HookedTransformer.from_pretrained(
+            model_name, device=device, default_prepend_bos=False
+        )
+
+    @modal.method()
+    def generate(self, prompt: str) -> str:
+        return self.model.generate(prompt, max_new_tokens=100)
+
+    @modal.method()
+    def logitlens(self, request: LogitLensRequest) -> str:
+        return logitlens(request, self.model)
