@@ -76,14 +76,19 @@ def calculate_mean_difference(positive_activations: dict, negative_activations: 
     return steering_vectors
 
 
-def calculate_steering_vectors(request: SteeringVectorRequest):
+def calculate_steering_vectors(
+    request: SteeringVectorRequest, model: HookedTransformer = None
+):
     """Gets the steering vectors for the behavior seen from the prompts that generated the input
         positive_activations for each layer index key.
 
     Args:
       request: The steering vector request containing model name and prompts
     """
-    model = load_model(request.model_name)
+
+    if not model:
+        model = load_model(request.model_name)
+
     positive_activations = get_activations(model, request.positive_prompts)
     negative_activations = get_activations(model, request.negative_prompts)
     steering_vectors = calculate_mean_difference(
@@ -149,8 +154,9 @@ def generate_with_steering(
     return response
 
 
-def run_with_steering(request: RunWithSteeringRequest):
-    model = load_model(request.model_name)
+def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer = None):
+    if not model:
+        model = load_model(request.model_name)
 
     # Convert steering vectors from lists back to tensors
     steering_vectors = {

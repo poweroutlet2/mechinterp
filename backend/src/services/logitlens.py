@@ -5,6 +5,7 @@ import logging
 from transformer_lens.hook_points import HookPoint
 import torch as t
 from transformer_lens import HookedTransformer
+from src.helpers import load_model
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +15,13 @@ class RawResid(NamedTuple):
     resid: Tensor
 
 
-def logitlens(request: LogitLensRequest, model: HookedTransformer):
+def logitlens(request: LogitLensRequest, model: HookedTransformer = None):
     """Runs the input text through the selected model and returns the most probable token
     after each model layer for each input token.
     """
+
+    if not model:
+        model = load_model(request.model_name)
 
     input = request.input
 

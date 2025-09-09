@@ -4,8 +4,8 @@ loaded_models = {}
 
 available_models = [
     "gpt2-small",
-    "gpt2-medium",
-    "qwen3-0.6b",
     "gemma-2b",
+    "gemma-7b",
     "qwen-1.8b-chat",
+    "llama-2-7b-chat",
 ]
