@@ -10,8 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
 import ModelSelector from "../../components/model-selector";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchSteeringPresets } from "./presets";
+type Preset = {
+	id: string;
+	name: string;
+	description?: string;
+	positive: string[];
+	negative: string[];
+};
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -36,6 +44,12 @@ export default function SteeringDemo() {
 	const [isGeneratingVectors, setIsGeneratingVectors] = useState(false);
 	const [isRunningModel, setIsRunningModel] = useState(false);
 
+	// Presets
+	const [presets, setPresets] = useState<Preset[]>([]);
+	const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+	const [presetsLoading, setPresetsLoading] = useState<boolean>(false);
+	const [presetsError, setPresetsError] = useState<string | null>(null);
+
 	// Model steering parameters
 	const [selectedLayer, setSelectedLayer] = useState<number>(6);
 	const [scalingFactor, setScalingFactor] = useState<number>(1.0);
@@ -43,8 +57,8 @@ export default function SteeringDemo() {
 	const [prompt, setPrompt] = useState<string>("I think");
 	const [modelResults, setModelResults] = useState<RunWithSteeringResponse | null>(null);
 
-	const addPositivePrompt = () => setPositivePrompts([...positivePrompts, ""]);
-	const addNegativePrompt = () => setNegativePrompts([...negativePrompts, ""]);
+	const addPositivePrompt = () => positivePrompts.length < 10 && setPositivePrompts([...positivePrompts, ""]);
+	const addNegativePrompt = () => negativePrompts.length < 10 && setNegativePrompts([...negativePrompts, ""]);
 
 	const removePositivePrompt = (index: number) => {
 		if (positivePrompts.length > 1) {
@@ -68,6 +82,34 @@ export default function SteeringDemo() {
 		const updated = [...negativePrompts];
 		updated[index] = value;
 		setNegativePrompts(updated);
+	};
+
+	// Load presets
+	useEffect(() => {
+		let isMounted = true;
+		(async () => {
+			try {
+				setPresetsLoading(true);
+				const data = await fetchSteeringPresets();
+				if (isMounted) setPresets(data as unknown as Preset[]);
+			} catch {
+				if (isMounted) setPresetsError("Failed to load presets");
+			} finally {
+				if (isMounted) setPresetsLoading(false);
+			}
+		})();
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
+	// Apply preset selection (overwrite prompts)
+	const handlePresetSelect = (id: string) => {
+		setSelectedPresetId(id);
+		const preset = presets.find((p) => p.id === id);
+		if (!preset) return; // "None" selected, do not overwrite
+		setPositivePrompts(preset.positive.slice(0, 10));
+		setNegativePrompts(preset.negative.slice(0, 10));
 	};
 
 	const generateSteeringVectors = async () => {
@@ -159,16 +201,19 @@ export default function SteeringDemo() {
 								<p className="mb-4">
 									Steering vectors are a technique for controlling the behavior of language models by
 									adding specific directions to the model&apos;s internal representations. This allows
-									you to encourage certain behaviors (like being more positive) or discourage others.
+									you to encourage certain behaviors (like being more humorous).
 								</p>
 								<p className="mb-4">
 									First, generate steering vectors by providing examples of desired behavior (positive
-									prompts) and undesired behavior (negative prompts). Then use those vectors to steer
-									the model&apos;s output when generating text.
+									prompts) and undesired behavior (negative prompts). These vectors will be used to
+									calculate the steering vectors by taking the difference between the means of the
+									activations of the positive and negative prompts.
 								</p>
 								<p>
 									Select a model, create your steering vectors, and then see how they affect the
-									model&apos;s responses compared to the unsteered baseline.
+									model&apos;s responses compared to the unsteered baseline. The steering vector will
+									be multiplied by the scaling factor and added to the model&apos;s activations at the
+									selected layer to produce the steered response.
 								</p>
 							</AccordionContent>
 						</AccordionItem>
@@ -180,39 +225,91 @@ export default function SteeringDemo() {
 				{/* Steering Vector Generation Section */}
 				<div className="border rounded-lg p-6 bg-white shadow-sm">
 					<div className="mb-6">
-						<h3 className="text-xl font-semibold mb-2">Generate Steering Vector</h3>
+						<h3 className="text-xl font-semibold mb-2">1. Generate Steering Vector</h3>
 						<p className="text-gray-600">
-							Create a steering vector by providing positive and negative example prompts
+							Create a steering vector by providing positive and negative example prompts. The positive
+							prompts should exemplify the desired behavior, and the negative prompts should no exemplify
+							the behavior or exemplify the opposite of the desired behavior. Check the presets for some
+							examples!
 						</p>
 					</div>
 					<div className="space-y-6">
+						{/* Preset Selector */}
+						<div className="grid grid-cols-1 gap-2 w-fit">
+							<Label className="text-sm font-medium">Preset</Label>
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div>
+											<Select
+												value={selectedPresetId}
+												onValueChange={handlePresetSelect}
+												disabled={presetsLoading || !!presetsError}
+											>
+												<SelectTrigger className="hover:cursor-pointer">
+													<SelectValue
+														placeholder={
+															presetsLoading
+																? "Loading presets..."
+																: presetsError
+																? "Presets unavailable"
+																: "Select a preset"
+														}
+													/>
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="none">None</SelectItem>
+													{presets.map((p) => (
+														<SelectItem key={p.id} value={p.id}>
+															+{p.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									</TooltipTrigger>
+									<TooltipContent>
+										<p>Selecting a preset will overwrite your current prompts.</p>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+							{presetsError && <p className="text-xs text-gray-500">{presetsError}</p>}
+						</div>
 						<div className="space-y-4">
 							<div>
 								<Label className="text-sm font-medium">
 									Positive Prompts (encourage this behavior)
+									<span className="text-gray-500"> ({positivePrompts.length}/10)</span>
 								</Label>
 								<div className="space-y-2 mt-2">
-									{positivePrompts.map((prompt, index) => (
-										<div key={index} className="flex gap-2 items-center">
-											<Textarea
-												value={prompt}
-												onChange={(e) => updatePositivePrompt(index, e.target.value)}
-												placeholder="Enter a prompt that encourages the desired behavior..."
-												className="flex-1"
-												rows={2}
-											/>
-											{positivePrompts.length > 1 && (
-												<Button
-													variant="outline"
-													size="icon"
-													onClick={() => removePositivePrompt(index)}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
-									))}
-									<Button variant="outline" onClick={addPositivePrompt} className="w-full">
+									<div className="max-h-48 overflow-y-auto pr-1">
+										{positivePrompts.map((prompt, index) => (
+											<div key={index} className="flex gap-2 items-center">
+												<Textarea
+													value={prompt}
+													onChange={(e) => updatePositivePrompt(index, e.target.value)}
+													placeholder="Enter a prompt that encourages the desired behavior..."
+													className="flex-1"
+													rows={2}
+												/>
+												{positivePrompts.length > 1 && (
+													<Button
+														variant="outline"
+														size="icon"
+														onClick={() => removePositivePrompt(index)}
+													>
+														<X className="h-4 w-4" />
+													</Button>
+												)}
+											</div>
+										))}
+									</div>
+									<Button
+										variant="outline"
+										onClick={addPositivePrompt}
+										className="w-full"
+										disabled={positivePrompts.length >= 10}
+									>
 										<Plus className="h-4 w-4 mr-2" />
 										Add Positive Prompt
 									</Button>
@@ -222,29 +319,37 @@ export default function SteeringDemo() {
 							<div>
 								<Label className="text-sm font-medium">
 									Negative Prompts (discourage this behavior)
+									<span className="text-gray-500"> ({negativePrompts.length}/10)</span>
 								</Label>
 								<div className="space-y-2 mt-2">
-									{negativePrompts.map((prompt, index) => (
-										<div key={index} className="flex gap-2 items-center">
-											<Textarea
-												value={prompt}
-												onChange={(e) => updateNegativePrompt(index, e.target.value)}
-												placeholder="Enter a prompt that shows the opposite behavior..."
-												className="flex-1"
-												rows={2}
-											/>
-											{negativePrompts.length > 1 && (
-												<Button
-													variant="outline"
-													size="icon"
-													onClick={() => removeNegativePrompt(index)}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
-									))}
-									<Button variant="outline" onClick={addNegativePrompt} className="w-full">
+									<div className="max-h-48 overflow-y-auto pr-1">
+										{negativePrompts.map((prompt, index) => (
+											<div key={index} className="flex gap-2 items-center">
+												<Textarea
+													value={prompt}
+													onChange={(e) => updateNegativePrompt(index, e.target.value)}
+													placeholder="Enter a prompt that shows the opposite behavior..."
+													className="flex-1"
+													rows={2}
+												/>
+												{negativePrompts.length > 1 && (
+													<Button
+														variant="outline"
+														size="icon"
+														onClick={() => removeNegativePrompt(index)}
+													>
+														<X className="h-4 w-4" />
+													</Button>
+												)}
+											</div>
+										))}
+									</div>
+									<Button
+										variant="outline"
+										onClick={addNegativePrompt}
+										className="w-full"
+										disabled={negativePrompts.length >= 10}
+									>
 										<Plus className="h-4 w-4 mr-2" />
 										Add Negative Prompt
 									</Button>
@@ -301,7 +406,7 @@ export default function SteeringDemo() {
 											>
 												<div className="text-left">
 													<h3 className="text-xl font-semibold mb-1">
-														Run Model with Steering
+														2. Run Model with Steering
 													</h3>
 													<p className="text-sm text-gray-400">
 														Generate steering vectors first to unlock this section
