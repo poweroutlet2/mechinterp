@@ -128,7 +128,7 @@ export default function LogitLens() {
 					</Accordion>
 				</div>
 				<form onSubmit={handleSubmit} className="flex flex-col gap-4">
-					<ModelSelector modelName={modelName} onModelChange={setModelName} />
+					<ModelSelector modelName={modelName} onModelChange={setModelName} isMutating={mutation.isPending} />
 					<div>
 						<Label htmlFor="input" className="block text-sm font-medium">
 							Input Text

@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
 import ModelSelector from "../../components/model-selector";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { fetchSteeringPresets } from "./presets";
 type Preset = {
@@ -56,6 +57,8 @@ export default function SteeringDemo() {
 	const [maxTokens, setMaxTokens] = useState<number>(50);
 	const [prompt, setPrompt] = useState<string>("I think");
 	const [modelResults, setModelResults] = useState<RunWithSteeringResponse | null>(null);
+
+	const queryClient = useQueryClient();
 
 	const addPositivePrompt = () => positivePrompts.length < 10 && setPositivePrompts([...positivePrompts, ""]);
 	const addNegativePrompt = () => negativePrompts.length < 10 && setNegativePrompts([...negativePrompts, ""]);
@@ -114,6 +117,8 @@ export default function SteeringDemo() {
 
 	const generateSteeringVectors = async () => {
 		setIsGeneratingVectors(true);
+		// Prompt a refresh of loaded models to reflect potential loading state
+		queryClient.invalidateQueries({ queryKey: ["loadedModels"] });
 		try {
 			const response = await fetch(`${API_BASE_URL}/steering/calculate`, {
 				method: "POST",
@@ -133,6 +138,8 @@ export default function SteeringDemo() {
 			console.error("Error generating steering vectors:", error);
 		} finally {
 			setIsGeneratingVectors(false);
+			// Refresh loaded models again to capture any model load completion
+			queryClient.invalidateQueries({ queryKey: ["loadedModels"] });
 		}
 	};
 
@@ -141,6 +148,8 @@ export default function SteeringDemo() {
 
 		setIsRunningModel(true);
 		setModelResults(null);
+		// Prompt a refresh of loaded models to reflect potential loading state
+		queryClient.invalidateQueries({ queryKey: ["loadedModels"] });
 
 		try {
 			const response = await fetch(`${API_BASE_URL}/steering/run_with_steering`, {
@@ -164,6 +173,8 @@ export default function SteeringDemo() {
 			console.error("Error running model with steering:", error);
 		} finally {
 			setIsRunningModel(false);
+			// Refresh loaded models again to capture any model load completion
+			queryClient.invalidateQueries({ queryKey: ["loadedModels"] });
 		}
 	};
 
@@ -220,7 +231,11 @@ export default function SteeringDemo() {
 					</Accordion>
 				</div>
 
-				<ModelSelector modelName={modelName} onModelChange={setModelName} />
+				<ModelSelector
+					modelName={modelName}
+					onModelChange={setModelName}
+					isMutating={isGeneratingVectors || isRunningModel}
+				/>
 
 				{/* Steering Vector Generation Section */}
 				<div className="border rounded-lg p-6 bg-white shadow-sm">

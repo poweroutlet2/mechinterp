@@ -113,7 +113,7 @@ const statusConfig: Record<
 };
 
 const ModelStatusBadge = ({ status, isMutating }: { status: ModelStatus; isMutating: boolean }) => {
-	const displayStatus = isMutating || status === "loading" ? "loading" : status;
+	const displayStatus = status === "loading" || (isMutating && status === "sleeping") ? "loading" : status;
 	const config = statusConfig[displayStatus];
 
 	return (
@@ -131,9 +131,10 @@ const ModelStatusBadge = ({ status, isMutating }: { status: ModelStatus; isMutat
 interface ModelSelectorProps {
 	modelName: string;
 	onModelChange: (modelName: string) => void;
+	isMutating?: boolean;
 }
 
-export default function ModelSelector({ modelName, onModelChange }: ModelSelectorProps) {
+export default function ModelSelector({ modelName, onModelChange, isMutating = false }: ModelSelectorProps) {
 	const { data: loadedModels, isLoading: isLoadingModels } = useQuery({
 		queryKey: ["loadedModels"],
 		queryFn: fetchLoadedModels,
@@ -169,7 +170,7 @@ export default function ModelSelector({ modelName, onModelChange }: ModelSelecto
 						})}
 					</SelectContent>
 				</Select>
-				<ModelStatusBadge status={selectedModelStatus} isMutating={false} />
+				<ModelStatusBadge status={selectedModelStatus} isMutating={isMutating} />
 			</div>
 		</div>
 	);
