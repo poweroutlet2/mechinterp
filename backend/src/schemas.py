@@ -20,8 +20,9 @@ class LogitLensResponse(BaseModel):
 
 class SteeringVectorRequest(BaseModel):
     model_name: str
-    positive_prompts: list[str]
-    negative_prompts: list[str]
+    user_prompts: list[str]
+    assistant_positive_responses: list[str]
+    assistant_negative_responses: list[str]
 
 
 class SteeringVectorResponse(BaseModel):
@@ -30,7 +31,7 @@ class SteeringVectorResponse(BaseModel):
 
 class RunWithSteeringRequest(BaseModel):
     model_name: str
-    prompt: list[str]
+    prompt: str
     steering_vectors: dict[int, list[float]]
     layer: int
     scaling_factor: float = 1.0

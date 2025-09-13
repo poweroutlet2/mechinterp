@@ -10,8 +10,78 @@ from src.schemas import (
 )
 from transformer_lens.hook_points import HookPoint
 import logging
+from typing import List, Optional
+
 
 logger = logging.getLogger(__name__)
+
+
+def add_special_tokens_with_assistant_response(
+    user_prompts: List[str],
+    tokenizer,
+    system_prompt: Optional[str] = None,
+    assistant_responses: Optional[List[str]] = None,
+) -> List[str]:
+    """
+    Wrap a list[str] of user prompts and assistant responses with Llama-2-7B-Chat special tokens using
+    the model's chat template.
+
+    Args:
+        user_prompts: List of user prompt strings
+        assistant_responses: List of assistant response strings
+        system_prompt: Optional system message to prepend (None to omit)
+        tokenizer: the model's tokenizer
+
+    Returns:
+        List of formatted strings ready to be tokenized and fed to the model
+    """
+
+    formatted: List[str] = []
+    for user_prompt, assistant_response in zip(user_prompts, assistant_responses):
+        messages = (
+            [{"role": "system", "content": system_prompt}] if system_prompt else []
+        )
+        messages += [{"role": "user", "content": user_prompt}]
+        messages += [{"role": "assistant", "content": assistant_response}]
+
+        text: str = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,  # return a string with special tokens
+        )
+        formatted.append(text)
+
+    return formatted
+
+
+def add_special_tokens(
+    user_prompt: str,
+    tokenizer,
+    system_prompt: Optional[str] = None,
+    add_generation_prompt: bool = True,
+) -> str:
+    """
+    Wrap single user prompt with Llama-2-7B-Chat special tokens using the model's chat template.
+
+    Args:
+        user_prompt: User prompt string
+        system_prompt: Optional system message to prepend (None to omit)
+        add_generation_prompt: Whether to add the generation prompt for the assistant
+        tokenizer: the model's tokenizer
+
+    Returns:
+        Formatted string ready to be tokenized and fed to the model
+    """
+
+    messages = [{"role": "system", "content": system_prompt}] if system_prompt else []
+    messages += [{"role": "user", "content": user_prompt}]
+
+    text: str = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,  # return a string with special tokens
+        add_generation_prompt=add_generation_prompt,  # leave the model ready to generate assistant reply
+    )
+
+    return text
 
 
 def get_activations(
@@ -73,6 +143,12 @@ def calculate_mean_difference(positive_activations: dict, negative_activations: 
         negative_mean = negative_activations[layer_idx].mean(dim=0)
         steering_vectors[layer_idx] = positive_mean - negative_mean
 
+    # L2 normalize
+    # for layer_idx in steering_vectors.keys():
+    #     steering_vectors[layer_idx] = steering_vectors[layer_idx] / (
+    #         steering_vectors[layer_idx].norm() + 1e-8
+    #     )
+
     return steering_vectors
 
 
@@ -85,12 +161,30 @@ def calculate_steering_vectors(
     Args:
       request: The steering vector request containing model name and prompts
     """
-
     if not model:
         model = load_model(request.model_name)
 
-    positive_activations = get_activations(model, request.positive_prompts)
-    negative_activations = get_activations(model, request.negative_prompts)
+    positive_prompts = add_special_tokens_with_assistant_response(
+        user_prompts=request.user_prompts,
+        tokenizer=model.tokenizer,
+        assistant_responses=request.assistant_positive_responses,
+    )
+    negative_prompts = add_special_tokens_with_assistant_response(
+        user_prompts=request.user_prompts,
+        tokenizer=model.tokenizer,
+        assistant_responses=request.assistant_negative_responses,
+    )
+
+    # Remove the end of turn token (for capturing activations)
+    positive_prompts_trunc = [
+        prompt.replace("<end_of_turn>", "") for prompt in positive_prompts
+    ]
+    negative_prompts_trunc = [
+        prompt.replace("<end_of_turn>", "") for prompt in negative_prompts
+    ]
+
+    positive_activations = get_activations(model, positive_prompts_trunc)
+    negative_activations = get_activations(model, negative_prompts_trunc)
     steering_vectors = calculate_mean_difference(
         positive_activations, negative_activations
     )
@@ -105,7 +199,7 @@ def calculate_steering_vectors(
 
 def apply_steering_vector_hook(
     activations: t.Tensor,
-    hook: HookPoint,  # The hook object itself is not used but is a required argument
+    hook: HookPoint,  # The hook itself is not used but is a required argument
     steering_vector: t.Tensor,
     scaling_factor: float,
 ) -> t.Tensor:
@@ -113,13 +207,16 @@ def apply_steering_vector_hook(
     TransformerLens hook function to apply a steering vector to all token positions.
     """
     # Ensure the steering vector is on the same device as the activations
-    device = activations.device
-    scaled_steering_vector = (scaling_factor * steering_vector).to(device)
+    scaled_steering_vector = (scaling_factor * steering_vector).to(
+        device=activations.device, dtype=activations.dtype
+    )
 
-    # Add the steering vector to all token positions.
-    # The vector [d_model] will be broadcast across the [batch, position] dimensions.
+    # # Add the steering vector to all token positions.
+    # # The vector [d_model] will be broadcast across the [batch, position] dimensions.
     activations = activations + scaled_steering_vector
 
+    # activations = activations.clone()
+    # activations[:, -1, :] = activations[:, -1, :] + scaled_steering_vector
     return activations
 
 
@@ -130,7 +227,7 @@ def generate_with_steering(
     layer_idx: int,
     scaling_factor=1.0,
     max_tokens: int = 100,
-) -> str:
+):
     """ """
     steering_vector_at_layer = steering_vectors[layer_idx]
 
@@ -147,11 +244,11 @@ def generate_with_steering(
             input_ids,
             max_new_tokens=max_tokens,
             eos_token_id=model.tokenizer.eos_token_id,
+            do_sample=False,
         )
         model.reset_hooks()
     response = model.to_string(generated_ids)
-    logger.info(f"Response: {response}")
-    return response
+    return response[0]
 
 
 def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer = None):
@@ -164,16 +261,20 @@ def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer 
         for layer_idx, vector in request.steering_vectors.items()
     }
 
+    prompt_with_special_tokens = add_special_tokens(
+        request.prompt, model.tokenizer, system_prompt=None
+    )
+
     steered_response = generate_with_steering(
         model,
-        request.prompt,
+        prompt_with_special_tokens,
         steering_vectors,
         request.layer,
         request.scaling_factor,
         request.max_tokens,
-    )[0]
+    )
     unsteered_response = model.generate(
-        request.prompt, max_new_tokens=request.max_tokens
+        prompt_with_special_tokens, max_new_tokens=request.max_tokens
     )
 
     return RunWithSteeringResponse(

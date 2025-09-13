@@ -1,6 +1,7 @@
 "use client";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -8,18 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
 import ModelSelector from "../../components/model-selector";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { fetchSteeringPresets } from "./presets";
+
 type Preset = {
 	id: string;
 	name: string;
 	description?: string;
-	positive: string[];
-	negative: string[];
+	user_prompts: string[];
+	positive_responses: string[];
+	negative_responses: string[];
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -38,9 +41,12 @@ interface RunWithSteeringResponse {
 }
 
 export default function SteeringDemo() {
-	const [modelName, setModelName] = useState("gpt2-small");
-	const [positivePrompts, setPositivePrompts] = useState<string[]>(["I love"]);
-	const [negativePrompts, setNegativePrompts] = useState<string[]>(["I hate"]);
+	const [modelName, setModelName] = useState("");
+	const [userPrompts, setUserPrompts] = useState<string[]>(["What do you think about cats?"]);
+	const [positiveResponses, setPositiveResponses] = useState<string[]>([
+		"I love cats! They're wonderful companions.",
+	]);
+	const [negativeResponses, setNegativeResponses] = useState<string[]>(["I hate cats. They're annoying animals."]);
 	const [steeringVectors, setSteeringVectors] = useState<SteeringVectors | null>(null);
 	const [isGeneratingVectors, setIsGeneratingVectors] = useState(false);
 	const [isRunningModel, setIsRunningModel] = useState(false);
@@ -52,7 +58,7 @@ export default function SteeringDemo() {
 	const [presetsError, setPresetsError] = useState<string | null>(null);
 
 	// Model steering parameters
-	const [selectedLayer, setSelectedLayer] = useState<number>(6);
+	const [selectedLayer, setSelectedLayer] = useState<number>(9);
 	const [scalingFactor, setScalingFactor] = useState<number>(1.0);
 	const [maxTokens, setMaxTokens] = useState<number>(50);
 	const [prompt, setPrompt] = useState<string>("I think");
@@ -60,31 +66,39 @@ export default function SteeringDemo() {
 
 	const queryClient = useQueryClient();
 
-	const addPositivePrompt = () => positivePrompts.length < 10 && setPositivePrompts([...positivePrompts, ""]);
-	const addNegativePrompt = () => negativePrompts.length < 10 && setNegativePrompts([...negativePrompts, ""]);
-
-	const removePositivePrompt = (index: number) => {
-		if (positivePrompts.length > 1) {
-			setPositivePrompts(positivePrompts.filter((_, i) => i !== index));
+	const removeUserPrompt = (index: number) => {
+		if (userPrompts.length > 1) {
+			setUserPrompts(userPrompts.filter((_, i) => i !== index));
+			// Also remove corresponding responses
+			setPositiveResponses(positiveResponses.filter((_, i) => i !== index));
+			setNegativeResponses(negativeResponses.filter((_, i) => i !== index));
 		}
 	};
 
-	const removeNegativePrompt = (index: number) => {
-		if (negativePrompts.length > 1) {
-			setNegativePrompts(negativePrompts.filter((_, i) => i !== index));
+	const updateUserPrompt = (index: number, value: string) => {
+		const updated = [...userPrompts];
+		updated[index] = value;
+		setUserPrompts(updated);
+	};
+
+	const updatePositiveResponse = (index: number, value: string) => {
+		const updated = [...positiveResponses];
+		updated[index] = value;
+		setPositiveResponses(updated);
+	};
+
+	const updateNegativeResponse = (index: number, value: string) => {
+		const updated = [...negativeResponses];
+		updated[index] = value;
+		setNegativeResponses(updated);
+	};
+
+	const addPromptResponsePair = () => {
+		if (userPrompts.length < 10) {
+			setUserPrompts([...userPrompts, ""]);
+			setPositiveResponses([...positiveResponses, ""]);
+			setNegativeResponses([...negativeResponses, ""]);
 		}
-	};
-
-	const updatePositivePrompt = (index: number, value: string) => {
-		const updated = [...positivePrompts];
-		updated[index] = value;
-		setPositivePrompts(updated);
-	};
-
-	const updateNegativePrompt = (index: number, value: string) => {
-		const updated = [...negativePrompts];
-		updated[index] = value;
-		setNegativePrompts(updated);
 	};
 
 	// Load presets
@@ -111,8 +125,9 @@ export default function SteeringDemo() {
 		setSelectedPresetId(id);
 		const preset = presets.find((p) => p.id === id);
 		if (!preset) return; // "None" selected, do not overwrite
-		setPositivePrompts(preset.positive.slice(0, 10));
-		setNegativePrompts(preset.negative.slice(0, 10));
+		setUserPrompts(preset.user_prompts.slice(0, 10));
+		setPositiveResponses(preset.positive_responses.slice(0, 10));
+		setNegativeResponses(preset.negative_responses.slice(0, 10));
 	};
 
 	const generateSteeringVectors = async () => {
@@ -125,8 +140,9 @@ export default function SteeringDemo() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					model_name: modelName,
-					positive_prompts: positivePrompts.filter((p) => p.trim() !== ""),
-					negative_prompts: negativePrompts.filter((p) => p.trim() !== ""),
+					user_prompts: userPrompts.filter((p) => p.trim() !== ""),
+					assistant_positive_responses: positiveResponses.filter((p) => p.trim() !== ""),
+					assistant_negative_responses: negativeResponses.filter((p) => p.trim() !== ""),
 				}),
 			});
 
@@ -157,7 +173,7 @@ export default function SteeringDemo() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					model_name: modelName,
-					prompt: [prompt],
+					prompt: prompt,
 					steering_vectors: steeringVectors,
 					layer: selectedLayer,
 					scaling_factor: scalingFactor,
@@ -203,7 +219,7 @@ export default function SteeringDemo() {
 						</svg>
 						Source Code
 					</a>
-					<Accordion type="single" collapsible className="w-full">
+					<Accordion type="single" collapsible className="w-full" defaultValue="description">
 						<AccordionItem value="description">
 							<AccordionTrigger className="text-3xl font-bold hover:cursor-pointer">
 								Steering Vectors Demo
@@ -212,19 +228,35 @@ export default function SteeringDemo() {
 								<p className="mb-4">
 									Steering vectors are a technique for controlling the behavior of language models by
 									adding specific directions to the model&apos;s internal representations. This allows
-									you to encourage certain behaviors (like being more humorous).
+									you to encourage certain behaviors (like being more humorous) without fine-tuning!
 								</p>
+
+								<Alert className="mb-4 border-amber-200 bg-amber-50">
+									<AlertTriangle className="h-4 w-4 text-amber-600" />
+									<AlertTitle className="text-amber-800">Disclaimer</AlertTitle>
+									<AlertDescription className="text-amber-700">
+										Steering vectors don&apos;t perfectly capture behaviors and are not guaranteed
+										to make the model act exactly as intended. They may also have unintended effects
+										due to variability across inputs, potential biases from contrasting prompts, and
+										limited generalization across different scenarios. This can also happen because
+										of something called superposition. Basically, a single target behavior is
+										probably not represented by simple linear directions in the model&apos;s
+										activation space, so itcannot be perfectly represented by a steering vector.
+									</AlertDescription>
+								</Alert>
+
 								<p className="mb-4">
-									First, generate steering vectors by providing examples of desired behavior (positive
-									prompts) and undesired behavior (negative prompts). These vectors will be used to
-									calculate the steering vectors by taking the difference between the means of the
-									activations of the positive and negative prompts.
+									First, come up with user prompts and corresponding positive and negative assistant
+									resposnes. The positive responses should be examples of how you want the model to
+									behave, and the negative responses should be examples of either the opposite of how
+									you want the model to behave or examples of normal responses. These will be used to
+									calculate the steering vectors by taking the mean difference between the residual
+									stream activations of the positive and negative responses after each layer.
 								</p>
 								<p>
-									Select a model, create your steering vectors, and then see how they affect the
-									model&apos;s responses compared to the unsteered baseline. The steering vector will
-									be multiplied by the scaling factor and added to the model&apos;s activations at the
-									selected layer to produce the steered response.
+									Then, enter a user prompt and see how the model responds to it. You can also change
+									the layer and scaling factor to see how the steering vectors affect the model&apos;s
+									responses.
 								</p>
 							</AccordionContent>
 						</AccordionItem>
@@ -235,6 +267,7 @@ export default function SteeringDemo() {
 					modelName={modelName}
 					onModelChange={setModelName}
 					isMutating={isGeneratingVectors || isRunningModel}
+					availableModelsEndpoint="steering/available_models"
 				/>
 
 				{/* Steering Vector Generation Section */}
@@ -242,10 +275,10 @@ export default function SteeringDemo() {
 					<div className="mb-6">
 						<h3 className="text-xl font-semibold mb-2">1. Generate Steering Vector</h3>
 						<p className="text-gray-600">
-							Create a steering vector by providing positive and negative example prompts. The positive
-							prompts should exemplify the desired behavior, and the negative prompts should no exemplify
-							the behavior or exemplify the opposite of the desired behavior. Check the presets for some
-							examples!
+							Create a steering vector by providing user prompts with corresponding positive and negative
+							assistant responses. The positive responses should exemplify the desired behavior, and the
+							negative responses should exemplify the opposite or undesired behavior. Check the presets
+							for some examples!
 						</p>
 					</div>
 					<div className="space-y-6">
@@ -291,84 +324,79 @@ export default function SteeringDemo() {
 							{presetsError && <p className="text-xs text-gray-500">{presetsError}</p>}
 						</div>
 						<div className="space-y-4">
-							<div>
-								<Label className="text-sm font-medium">
-									Positive Prompts (encourage this behavior)
-									<span className="text-gray-500"> ({positivePrompts.length}/10)</span>
-								</Label>
-								<div className="space-y-2 mt-2">
-									<div className="max-h-48 overflow-y-auto pr-1">
-										{positivePrompts.map((prompt, index) => (
-											<div key={index} className="flex gap-2 items-center">
-												<Textarea
-													value={prompt}
-													onChange={(e) => updatePositivePrompt(index, e.target.value)}
-													placeholder="Enter a prompt that encourages the desired behavior..."
-													className="flex-1"
-													rows={2}
-												/>
-												{positivePrompts.length > 1 && (
+							<Label className="text-sm font-medium">
+								Prompt-Response Pairs
+								<span className="text-gray-500"> ({userPrompts.length}/10)</span>
+							</Label>
+							<div className="space-y-4 mt-2">
+								<div className="max-h-96 overflow-y-auto pr-1">
+									{userPrompts.map((userPrompt, index) => (
+										<div
+											key={index}
+											className="border border-gray-200 rounded-lg p-4 mb-1 space-y-3"
+										>
+											<div className="flex gap-2 items-start">
+												<div className="flex-1">
+													<Label className="text-xs font-medium text-gray-600 mb-1 block">
+														User Prompt {index + 1}
+													</Label>
+													<Textarea
+														value={userPrompt}
+														onChange={(e) => updateUserPrompt(index, e.target.value)}
+														placeholder="Enter a user prompt..."
+														className="text-sm"
+														rows={2}
+													/>
+												</div>
+												{userPrompts.length > 1 && (
 													<Button
 														variant="outline"
 														size="icon"
-														onClick={() => removePositivePrompt(index)}
+														onClick={() => removeUserPrompt(index)}
+														className="mt-5"
 													>
 														<X className="h-4 w-4" />
 													</Button>
 												)}
 											</div>
-										))}
-									</div>
-									<Button
-										variant="outline"
-										onClick={addPositivePrompt}
-										className="w-full"
-										disabled={positivePrompts.length >= 10}
-									>
-										<Plus className="h-4 w-4 mr-2" />
-										Add Positive Prompt
-									</Button>
-								</div>
-							</div>
-
-							<div>
-								<Label className="text-sm font-medium">
-									Negative Prompts (discourage this behavior)
-									<span className="text-gray-500"> ({negativePrompts.length}/10)</span>
-								</Label>
-								<div className="space-y-2 mt-2">
-									<div className="max-h-48 overflow-y-auto pr-1">
-										{negativePrompts.map((prompt, index) => (
-											<div key={index} className="flex gap-2 items-center">
-												<Textarea
-													value={prompt}
-													onChange={(e) => updateNegativePrompt(index, e.target.value)}
-													placeholder="Enter a prompt that shows the opposite behavior..."
-													className="flex-1"
-													rows={2}
-												/>
-												{negativePrompts.length > 1 && (
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => removeNegativePrompt(index)}
-													>
-														<X className="h-4 w-4" />
-													</Button>
-												)}
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+												<div>
+													<Label className="text-xs font-medium text-green-700 mb-1 block">
+														Positive Assistant Response
+													</Label>
+													<Textarea
+														value={positiveResponses[index] || ""}
+														onChange={(e) => updatePositiveResponse(index, e.target.value)}
+														placeholder="Assistant response that shows desired behavior..."
+														className="text-sm border-green-200 focus:border-green-300"
+														rows={3}
+													/>
+												</div>
+												<div>
+													<Label className="text-xs font-medium text-red-700 mb-1 block">
+														Negative Assistant Response
+													</Label>
+													<Textarea
+														value={negativeResponses[index] || ""}
+														onChange={(e) => updateNegativeResponse(index, e.target.value)}
+														placeholder="Assistant response that shows undesired behavior..."
+														className="text-sm border-red-200 focus:border-red-300"
+														rows={3}
+													/>
+												</div>
 											</div>
-										))}
-									</div>
-									<Button
-										variant="outline"
-										onClick={addNegativePrompt}
-										className="w-full"
-										disabled={negativePrompts.length >= 10}
-									>
-										<Plus className="h-4 w-4 mr-2" />
-										Add Negative Prompt
-									</Button>
+										</div>
+									))}
 								</div>
+								<Button
+									variant="outline"
+									onClick={addPromptResponsePair}
+									className="w-full"
+									disabled={userPrompts.length >= 10}
+								>
+									<Plus className="h-4 w-4 mr-2" />
+									Add Prompt-Response Pair
+								</Button>
 							</div>
 						</div>
 
@@ -376,8 +404,9 @@ export default function SteeringDemo() {
 							onClick={generateSteeringVectors}
 							disabled={
 								isGeneratingVectors ||
-								positivePrompts.some((p) => !p.trim()) ||
-								negativePrompts.some((p) => !p.trim())
+								userPrompts.some((p) => !p.trim()) ||
+								positiveResponses.some((p) => !p.trim()) ||
+								negativeResponses.some((p) => !p.trim())
 							}
 							className="w-full bg-indigo-600 text-white"
 						>
@@ -471,6 +500,7 @@ export default function SteeringDemo() {
 													id="scaling"
 													type="number"
 													step="0.1"
+													defaultValue={5.0}
 													value={scalingFactor}
 													onChange={(e) =>
 														setScalingFactor(parseFloat(e.target.value) || 1.0)
