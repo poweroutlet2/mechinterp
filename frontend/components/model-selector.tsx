@@ -26,8 +26,8 @@ async function fetchLoadedModels(): Promise<LoadedModelsResponse> {
 	return response.json();
 }
 
-async function fetchAvailableModels(): Promise<string[]> {
-	const response = await fetch(`${API_BASE_URL}/available_models`);
+async function fetchAvailableModels(endpoint: string = "available_models"): Promise<string[]> {
+	const response = await fetch(`${API_BASE_URL}/${endpoint}`);
 
 	if (!response.ok) {
 		throw new Error("Failed to fetch available models");
@@ -50,8 +50,8 @@ function useModelStatus(
 		const now = new Date();
 		const diffInSeconds = (now.getTime() - timestamp.getTime()) / 1000;
 
-		// Models are automatically unloaded after ~80 seconds
-		return diffInSeconds > 80 ? "sleeping" : "online";
+		// Models are automatically unloaded after ~90 seconds
+		return diffInSeconds > 90 ? "sleeping" : "online";
 	}, [isLoadingModels, loadedModels, modelName]);
 
 	const [status, setStatus] = useState<ModelStatus>(calculateStatus);
@@ -132,9 +132,15 @@ interface ModelSelectorProps {
 	modelName: string;
 	onModelChange: (modelName: string) => void;
 	isMutating?: boolean;
+	availableModelsEndpoint?: string;
 }
 
-export default function ModelSelector({ modelName, onModelChange, isMutating = false }: ModelSelectorProps) {
+export default function ModelSelector({
+	modelName,
+	onModelChange,
+	isMutating = false,
+	availableModelsEndpoint = "available_models",
+}: ModelSelectorProps) {
 	const { data: loadedModels, isLoading: isLoadingModels } = useQuery({
 		queryKey: ["loadedModels"],
 		queryFn: fetchLoadedModels,
@@ -143,10 +149,19 @@ export default function ModelSelector({ modelName, onModelChange, isMutating = f
 	});
 
 	const { data: availableModels } = useQuery({
-		initialData: ["gpt2-small"],
-		queryKey: ["availableModels"],
-		queryFn: fetchAvailableModels,
+		queryKey: ["availableModels", availableModelsEndpoint],
+		queryFn: () => fetchAvailableModels(availableModelsEndpoint),
 	});
+
+	// Auto-select the first available model when models are loaded
+	useEffect(() => {
+		if (availableModels && availableModels.length > 0) {
+			// If no model is selected or current model is not in available models, select the first one
+			if (!modelName || !availableModels.includes(modelName)) {
+				onModelChange(availableModels[0]);
+			}
+		}
+	}, [availableModels, modelName, onModelChange]);
 
 	const selectedModelStatus = useModelStatus(modelName, loadedModels, isLoadingModels);
 

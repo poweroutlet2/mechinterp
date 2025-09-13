@@ -48,7 +48,13 @@ async def root():
 @app.get("/available_models")
 async def list_models():
     """Lists the models available for use."""
-    return state.available_models
+    return [
+        "gpt2-small",
+        "gpt2-medium",
+        "gemma-2-2b-it",
+        "qwen-1.8b-chat",
+        "llama-2-7b-chat",
+    ]
 
 
 @app.get("/loaded_models")

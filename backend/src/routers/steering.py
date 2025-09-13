@@ -16,6 +16,11 @@ router = APIRouter(
 )
 
 
+@router.get("/available_models")
+async def available_models_endpoint():
+    return ["gemma-2-2b-it", "llama-2-7b-chat", "qwen-1.8b-chat"]
+
+
 @router.post("/calculate")
 async def calculate_steering_vectors_endpoint(
     request: SteeringVectorRequest,
@@ -47,9 +52,9 @@ async def run_with_steering_endpoint(request: RunWithSteeringRequest):
     if config.USE_MODAL:
         ModelRunner = modal.Cls.from_name(config.MODAL_APP_NAME, runners[model_name])
         model_runner = ModelRunner()
-        update_model_expiration(request.model_name)
         response = model_runner.run_with_steering.remote(request)
     else:
         response = run_with_steering(request)
 
+    update_model_expiration(request.model_name)
     return response
