@@ -50,10 +50,9 @@ async def list_models():
     """Lists the models available for use."""
     return [
         "gpt2-small",
-        "gpt2-medium",
         "gemma-2-2b-it",
-        "qwen-1.8b-chat",
         "llama-2-7b-chat",
+        "qwen2.5-3b-instruct",
     ]
 
 

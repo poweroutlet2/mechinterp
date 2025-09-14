@@ -15,7 +15,7 @@ router = APIRouter(prefix="/steering", tags=["steering"])
 
 @router.get("/available_models")
 async def available_models_endpoint():
-    return ["gpt2-small", "gemma-2-2b-it", "llama-2-7b-chat", "qwen2.5-3b-instruct"]
+    return ["gemma-2-2b-it", "llama-2-7b-chat", "qwen2.5-3b-instruct"]
 
 
 @router.post("/calculate")

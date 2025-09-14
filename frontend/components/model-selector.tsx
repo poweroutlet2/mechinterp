@@ -107,7 +107,7 @@ const statusConfig: Record<
 				loading
 			</>
 		),
-		tooltip: "Model is currently being loaded. This can take a few minutes!",
+		tooltip: "Model is currently being loaded. This can take a couple minutes on cold start.",
 		variant: "secondary",
 	},
 };
