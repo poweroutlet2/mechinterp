@@ -203,9 +203,8 @@ def apply_steering_vector_hook(
     steering_vector: t.Tensor,
     scaling_factor: float,
 ) -> t.Tensor:
-    """
-    TransformerLens hook function to apply a steering vector to all token positions.
-    """
+    """TransformerLens hook function to apply a steering vector to all token positions."""
+
     # Ensure the steering vector is on the same device as the activations
     scaled_steering_vector = (scaling_factor * steering_vector).to(
         device=activations.device, dtype=activations.dtype
@@ -228,7 +227,19 @@ def generate_with_steering(
     scaling_factor=1.0,
     max_tokens: int = 100,
 ):
-    """ """
+    """Generates a response using the prompt and steering vector application params.
+
+    Args:
+        model: The model to run
+        prompt: The prompt to input to the model
+        steering_vectors: The steering vectors dict mapping layer indices to tensors
+        layer_idx: The layer index to apply the steering vector to
+        scaling_factor: The scaling factor to apply to the steering vector
+        max_tokens: The maximum number of tokens to generate
+
+    Returns:
+        The generated raw response
+    """
     steering_vector_at_layer = steering_vectors[layer_idx]
 
     def specific_steering_hook(activations, hook):
@@ -236,22 +247,41 @@ def generate_with_steering(
             activations, hook, steering_vector_at_layer, scaling_factor
         )
 
-    input_ids = model.to_tokens(prompt)
-
     with t.no_grad():
         model.add_hook(f"blocks.{layer_idx}.hook_resid_post", specific_steering_hook)
-        generated_ids = model.generate(
-            input_ids,
+        response = model.generate(
+            prompt,
             max_new_tokens=max_tokens,
             eos_token_id=model.tokenizer.eos_token_id,
             do_sample=False,
         )
         model.reset_hooks()
-    response = model.to_string(generated_ids)
-    return response[0]
+    return response
+
+
+def clean_response(model_response: str, model_name: str):
+    """Clean the response by removing the special tokens. This is fragile."""
+
+    response = model_response
+
+    if model_name == "gemma-2-2b-it":
+        # 6 is the length of "model/n"
+        response = model_response[model_response.find("model") + 6 :]
+    elif model_name == "llama-2-7b-chat":
+        # 9 is the length of "[/INST]  "
+        response = model_response[model_response.find("[/INST]") + 9 :]
+    elif model_name == "qwen2.5-3b-instruct":
+        response = model_response[model_response.find("\nassistant\n") + 11 :]
+
+    return response
 
 
 def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer = None):
+    """
+    Adds the model's special tokens to the prompt, generates a response with and without steering,
+        and returns the cleaned responses.
+    """
+
     if not model:
         model = load_model(request.model_name)
 
@@ -265,7 +295,7 @@ def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer 
         request.prompt, model.tokenizer, system_prompt=None
     )
 
-    steered_response = generate_with_steering(
+    raw_steered_response = generate_with_steering(
         model,
         prompt_with_special_tokens,
         steering_vectors,
@@ -273,9 +303,12 @@ def run_with_steering(request: RunWithSteeringRequest, model: HookedTransformer 
         request.scaling_factor,
         request.max_tokens,
     )
-    unsteered_response = model.generate(
+    raw_unsteered_response = model.generate(
         prompt_with_special_tokens, max_new_tokens=request.max_tokens
     )
+
+    steered_response = clean_response(raw_steered_response, request.model_name)
+    unsteered_response = clean_response(raw_unsteered_response, request.model_name)
 
     return RunWithSteeringResponse(
         steered_response=steered_response,

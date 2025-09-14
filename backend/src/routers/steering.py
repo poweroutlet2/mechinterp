@@ -10,15 +10,12 @@ import modal
 from src.modal_app import runners
 
 
-router = APIRouter(
-    prefix="/steering",
-    tags=["steering"],
-)
+router = APIRouter(prefix="/steering", tags=["steering"])
 
 
 @router.get("/available_models")
 async def available_models_endpoint():
-    return ["gemma-2-2b-it", "llama-2-7b-chat", "qwen-1.8b-chat"]
+    return ["gpt2-small", "gemma-2-2b-it", "llama-2-7b-chat", "qwen2.5-3b-instruct"]
 
 
 @router.post("/calculate")

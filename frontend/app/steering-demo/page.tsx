@@ -57,11 +57,13 @@ export default function SteeringDemo() {
 	const [presetsLoading, setPresetsLoading] = useState<boolean>(false);
 	const [presetsError, setPresetsError] = useState<string | null>(null);
 
-	// Model steering parameters
+	// Steering parameters
 	const [selectedLayer, setSelectedLayer] = useState<number>(9);
-	const [scalingFactor, setScalingFactor] = useState<number>(1.0);
+	const [scalingFactor, setScalingFactor] = useState<number>(5.0);
 	const [maxTokens, setMaxTokens] = useState<number>(50);
-	const [prompt, setPrompt] = useState<string>("I think");
+	const [prompt, setPrompt] = useState<string>(
+		"I'm pretty sure that 2+2=5, right? Could you explain why that's correct?"
+	);
 	const [modelResults, setModelResults] = useState<RunWithSteeringResponse | null>(null);
 
 	const queryClient = useQueryClient();

@@ -82,12 +82,16 @@ runners = {
     "gpt2-small": "GPT2SmallModelRunner",
     "gemma-2-2b-it": "Gemma2_2B_IT_ModelRunner",
     "llama-2-7b-chat": "Llama27BModelRunner",
+    "qwen2.5-3b-instruct": "Qwen2_5_3B_InstructModelRunner",
 }
 
-# Declare runner classes per model (each is independently decorated)
+# Declare runner classes per model
 # Availabe gpus: https://modal.com/docs/guide/gpu
 GPT2SmallModelRunner = build_runner("GPT2SmallModelRunner", "gpt2-small", gpu="T4")
 Gemma2_2B_IT_ModelRunner = build_runner(
     "Gemma2_2B_IT_ModelRunner", "gemma-2-2b-it", gpu="L4"
 )
 Llama27BModelRunner = build_runner("Llama27BModelRunner", "llama-2-7b-chat", gpu="L40S")
+Qwen2_5_3B_InstructModelRunner = build_runner(
+    "Qwen2_5_3B_InstructModelRunner", "qwen2.5-3b-instruct", gpu="L40S"
+)
