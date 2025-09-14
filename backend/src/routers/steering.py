@@ -8,6 +8,7 @@ from src.services.steering import calculate_steering_vectors, run_with_steering
 from src.helpers import update_model_expiration
 import modal
 from src.modal_app import runners
+from fastapi.concurrency import run_in_threadpool
 
 
 router = APIRouter(prefix="/steering", tags=["steering"])
@@ -28,7 +29,9 @@ async def calculate_steering_vectors_endpoint(
     if config.USE_MODAL:
         ModelRunner = modal.Cls.from_name(config.MODAL_APP_NAME, runners[model_name])
         model_runner = ModelRunner()
-        response = model_runner.calculate_steering_vectors.remote(request)
+        response = await run_in_threadpool(
+            model_runner.calculate_steering_vectors.remote, request
+        )
     else:
         response = calculate_steering_vectors(request)
 
@@ -49,7 +52,9 @@ async def run_with_steering_endpoint(request: RunWithSteeringRequest):
     if config.USE_MODAL:
         ModelRunner = modal.Cls.from_name(config.MODAL_APP_NAME, runners[model_name])
         model_runner = ModelRunner()
-        response = model_runner.run_with_steering.remote(request)
+        response = await run_in_threadpool(
+            model_runner.run_with_steering.remote, request
+        )
     else:
         response = run_with_steering(request)
 

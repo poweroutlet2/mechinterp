@@ -6,6 +6,7 @@ import logging
 from src.helpers import update_model_expiration
 from src.services.logitlens import logitlens
 import modal
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter(
     prefix="/logitlens",
@@ -24,7 +25,7 @@ async def logitlens_endpoint(request: LogitLensRequest):
         model_runner = ModelRunner()
         ts = update_model_expiration(request.model_name)
         logger.info(f"Loaded model {request.model_name} at {ts}")
-        return model_runner.logitlens.remote(request)
+        return await run_in_threadpool(model_runner.logitlens.remote, request)
     else:
         response = logitlens(request)
         ts = update_model_expiration(request.model_name)
