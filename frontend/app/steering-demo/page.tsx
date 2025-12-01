@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, ArrowRight, Home, Loader2, Plus, X } from "lucide-react";
 import ModelSelector from "../../components/model-selector";
+import { ThemeToggle } from "../../components/theme-toggle";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -197,10 +198,15 @@ export default function SteeringDemo() {
 	};
 
 	return (
-		<div className="w-full flex justify-center min-h-screen p-8">
-			<Link href="/" className="text-gray-600 hover:text-gray-900 absolute top-4 left-4">
-				<Home className="size-6" />
-			</Link>
+		<div className="w-full flex justify-center min-h-screen p-8 relative">
+			<div className="absolute top-4 left-4">
+				<Link href="/" className="text-muted-foreground hover:text-foreground">
+					<Home className="size-6" />
+				</Link>
+			</div>
+			<div className="absolute top-4 right-4">
+				<ThemeToggle />
+			</div>
 
 			<div className="flex flex-col gap-8 w-full max-w-4xl">
 				<div className="flex flex-col gap-4">
@@ -214,7 +220,7 @@ export default function SteeringDemo() {
 							xmlns="http://www.w3.org/2000/svg"
 							width="32"
 							height="32"
-							className="fill-gray-600"
+							className="fill-muted-foreground"
 							viewBox="0 0 16 16"
 						>
 							<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
@@ -233,10 +239,10 @@ export default function SteeringDemo() {
 									you to encourage certain behaviors (like being more humorous) without fine-tuning!
 								</p>
 
-								<Alert className="mb-4 border-amber-200 bg-amber-50">
-									<AlertTriangle className="h-4 w-4 text-amber-600" />
-									<AlertTitle className="text-amber-800">Disclaimer</AlertTitle>
-									<AlertDescription className="text-amber-700">
+								<Alert className="mb-4 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
+									<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+									<AlertTitle className="text-amber-800 dark:text-amber-500">Disclaimer</AlertTitle>
+									<AlertDescription className="text-amber-900 dark:text-amber-600">
 										Steering vectors don&apos;t perfectly capture behaviors and are not guaranteed
 										to make the model act exactly as intended. They may also have unintended effects
 										due to variability across inputs, potential biases from contrasting prompts, and
@@ -273,10 +279,10 @@ export default function SteeringDemo() {
 				/>
 
 				{/* Steering Vector Generation Section */}
-				<div className="border rounded-lg p-6 bg-white shadow-sm">
+				<div className="border rounded-lg p-6 bg-card shadow-sm">
 					<div className="mb-6">
 						<h3 className="text-xl font-semibold mb-2">1. Generate Steering Vector</h3>
-						<p className="text-gray-600">
+						<p className="text-muted-foreground">
 							Create a steering vector by providing user prompts with corresponding positive and negative
 							assistant responses. The positive responses should exemplify the desired behavior, and the
 							negative responses should exemplify the opposite or undesired behavior. Check the presets
@@ -302,8 +308,8 @@ export default function SteeringDemo() {
 															presetsLoading
 																? "Loading presets..."
 																: presetsError
-																? "Presets unavailable"
-																: "Select a preset"
+																	? "Presets unavailable"
+																	: "Select a preset"
 														}
 													/>
 												</SelectTrigger>
@@ -323,23 +329,23 @@ export default function SteeringDemo() {
 									</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>
-							{presetsError && <p className="text-xs text-gray-500">{presetsError}</p>}
+							{presetsError && <p className="text-xs text-muted-foreground">{presetsError}</p>}
 						</div>
 						<div className="space-y-4">
 							<Label className="text-sm font-medium">
 								Prompt-Response Pairs
-								<span className="text-gray-500"> ({userPrompts.length}/10)</span>
+								<span className="text-muted-foreground"> ({userPrompts.length}/10)</span>
 							</Label>
 							<div className="space-y-4 mt-2">
 								<div className="max-h-96 overflow-y-auto pr-1">
 									{userPrompts.map((userPrompt, index) => (
 										<div
 											key={index}
-											className="border border-gray-200 rounded-lg p-4 mb-1 space-y-3"
+											className="border border-border rounded-lg p-4 mb-1 space-y-3"
 										>
 											<div className="flex gap-2 items-start">
 												<div className="flex-1">
-													<Label className="text-xs font-medium text-gray-600 mb-1 block">
+													<Label className="text-xs font-medium text-muted-foreground mb-1 block">
 														User Prompt {index + 1}
 													</Label>
 													<Textarea
@@ -363,26 +369,26 @@ export default function SteeringDemo() {
 											</div>
 											<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 												<div>
-													<Label className="text-xs font-medium text-green-700 mb-1 block">
+													<Label className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 block">
 														Positive Assistant Response
 													</Label>
 													<Textarea
 														value={positiveResponses[index] || ""}
 														onChange={(e) => updatePositiveResponse(index, e.target.value)}
 														placeholder="Assistant response that shows desired behavior..."
-														className="text-sm border-green-200 focus:border-green-300"
+														className="text-sm"
 														rows={3}
 													/>
 												</div>
 												<div>
-													<Label className="text-xs font-medium text-red-700 mb-1 block">
+													<Label className="text-xs font-medium text-red-600 dark:text-red-400 mb-1 block">
 														Negative Assistant Response
 													</Label>
 													<Textarea
 														value={negativeResponses[index] || ""}
 														onChange={(e) => updateNegativeResponse(index, e.target.value)}
 														placeholder="Assistant response that shows undesired behavior..."
-														className="text-sm border-red-200 focus:border-red-300"
+														className="text-sm"
 														rows={3}
 													/>
 												</div>
@@ -410,7 +416,7 @@ export default function SteeringDemo() {
 								positiveResponses.some((p) => !p.trim()) ||
 								negativeResponses.some((p) => !p.trim())
 							}
-							className="w-full bg-indigo-600 text-white"
+							className="w-full"
 						>
 							{isGeneratingVectors ? (
 								<>
@@ -423,9 +429,9 @@ export default function SteeringDemo() {
 						</Button>
 
 						{steeringVectors && (
-							<div className="p-4 bg-green-50 rounded-lg border border-green-200">
-								<h4 className="font-medium text-green-800 mb-2">Steering Vectors Generated</h4>
-								<p className="text-sm text-green-700">
+							<div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+								<h4 className="font-medium text-green-800 dark:text-green-200 mb-2">Steering Vectors Generated</h4>
+								<p className="text-sm text-green-700 dark:text-green-300">
 									Generated vectors for {Object.keys(steeringVectors).length} layers. Apply them to
 									the model below to see how they affect the model&apos;s output.
 								</p>
@@ -436,9 +442,8 @@ export default function SteeringDemo() {
 
 				{/* Model Steering Section */}
 				<div
-					className={`border rounded-lg bg-white shadow-sm transition-all duration-300 ${
-						!steeringVectors ? "opacity-50 bg-gray-50" : "opacity-100"
-					}`}
+					className={`border rounded-lg bg-card shadow-sm transition-all duration-300 ${!steeringVectors ? "opacity-50 bg-muted" : "opacity-100"
+						}`}
 				>
 					<TooltipProvider>
 						<Accordion type="single" collapsible value={steeringVectors ? "steering" : ""}>
@@ -447,14 +452,14 @@ export default function SteeringDemo() {
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<AccordionTrigger
-												className="px-6 py-4 hover:no-underline text-gray-500 cursor-default"
+												className="px-6 py-4 hover:no-underline text-muted-foreground cursor-default"
 												onClick={(e) => e.preventDefault()}
 											>
 												<div className="text-left">
 													<h3 className="text-xl font-semibold mb-1">
 														2. Run Model with Steering
 													</h3>
-													<p className="text-sm text-gray-400">
+													<p className="text-sm text-muted-foreground">
 														Generate steering vectors first to unlock this section
 													</p>
 												</div>
@@ -465,10 +470,10 @@ export default function SteeringDemo() {
 										</TooltipContent>
 									</Tooltip>
 								) : (
-									<AccordionTrigger className="px-6 py-4 hover:no-underline text-black hover:text-gray-700">
+									<AccordionTrigger className="px-6 py-4 hover:no-underline text-foreground hover:text-muted-foreground">
 										<div className="text-left">
 											<h3 className="text-xl font-semibold mb-1">Run Model with Steering</h3>
-											<p className="text-sm text-gray-600">
+											<p className="text-sm text-muted-foreground">
 												Use the generated steering vectors to influence the model&apos;s output
 											</p>
 										</div>
@@ -535,7 +540,7 @@ export default function SteeringDemo() {
 										<Button
 											onClick={runWithSteering}
 											disabled={isRunningModel || !prompt.trim()}
-											className="w-full  bg-indigo-600 text-white"
+											className="w-full"
 										>
 											{isRunningModel ? (
 												<>
@@ -554,19 +559,19 @@ export default function SteeringDemo() {
 											<div className="space-y-4">
 												<Separator />
 												<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-													<div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-														<h4 className="font-medium text-blue-800 mb-2">
+													<div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+														<h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
 															Steered Response
 														</h4>
-														<p className="text-sm text-blue-900 whitespace-pre-wrap">
+														<p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
 															{modelResults.steered_response}
 														</p>
 													</div>
-													<div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-														<h4 className="font-medium text-gray-800 mb-2">
+													<div className="p-4 bg-muted rounded-lg border border-border">
+														<h4 className="font-medium text-foreground mb-2">
 															Unsteered Response
 														</h4>
-														<p className="text-sm text-gray-900 whitespace-pre-wrap">
+														<p className="text-sm text-foreground whitespace-pre-wrap">
 															{modelResults.unsteered_response}
 														</p>
 													</div>

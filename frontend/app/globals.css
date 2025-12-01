@@ -122,5 +122,14 @@
   html body[data-scroll-locked] {
     overflow: visible !important;
     margin-right: 0 !important;
-  } 
+  }
+
+  /* Smooth theme transitions */
+  html {
+    color-scheme: light dark;
+  }
+
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
 }
