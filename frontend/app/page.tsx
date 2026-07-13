@@ -9,7 +9,7 @@ export default function Home() {
 				<ThemeToggle />
 			</div>
 			<div className="flex flex-col gap-4">
-				<span>Hi! I&apos;m Harsh! Here are some interactive mechinterp demos.</span>
+				<span>Hi, I&apos;m Harsh. Here are some interactive mechinterp demos.</span>
 				<Link href="/logitlens" className="hover:underline flex flex-row items-center gap-2 w-fit">
 					LogitLens
 					<ArrowRight className="size-4" />
